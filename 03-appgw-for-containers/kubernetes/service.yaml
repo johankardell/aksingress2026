@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: appgw-demo-service
+  namespace: default
+  labels:
+    app: appgw-demo-app
+    demo: appgw-containers
+spec:
+  type: ClusterIP
+  selector:
+    app: appgw-demo-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy-demo-app
+  namespace: default
+  labels:
+    app: envoy-demo-app
+    demo: gateway-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: envoy-demo-app
+  template:
+    metadata:
+      labels:
+        app: envoy-demo-app
+        demo: gateway-api
+    spec:
+      containers:
+      - name: app
+        image: ${ACR_LOGIN_SERVER}/aks-ingress-demo:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: DEMO_NAME
+          value: "Gateway API with Envoy Demo"
+        - name: DEMO_TYPE
+          value: "Gateway API with Envoy Gateway"
+        - name: APP_VERSION
+          value: "1.0.0"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3

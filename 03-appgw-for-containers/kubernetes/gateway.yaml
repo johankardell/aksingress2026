@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: appgw-demo-gateway
+  namespace: default
+  labels:
+    demo: appgw-containers
+  annotations:
+    alb.networking.azure.io/alb-namespace: kube-system
+    alb.networking.azure.io/alb-name: alb-controller
+spec:
+  gatewayClassName: azure-alb-external
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: Same

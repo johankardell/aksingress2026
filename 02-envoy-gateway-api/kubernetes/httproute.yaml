@@ -1,0 +1,18 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: envoy-demo-route
+  namespace: default
+  labels:
+    demo: gateway-api
+spec:
+  parentRefs:
+  - name: envoy-demo-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: envoy-demo-service
+      port: 80
