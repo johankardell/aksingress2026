@@ -8,7 +8,7 @@ param baseName string = 'nginx-demo'
 @description('Environment name (dev, test, prod)')
 param environment string = 'demo'
 
-@description('AKS Kubernetes version')
+@description('Pinned demo AKS Kubernetes version')
 param kubernetesVersion string = '1.34.7'
 
 @description('System node pool VM size')

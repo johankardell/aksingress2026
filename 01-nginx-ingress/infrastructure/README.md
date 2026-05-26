@@ -40,7 +40,7 @@ Key parameters in `main.bicepparam`:
 
 - `location`: Azure region (default: swedencentral)
 - `baseName`: Base name for resources (default: nginx-demo)
-- `kubernetesVersion`: AKS version (default: 1.34.7)
+- `kubernetesVersion`: Pinned demo AKS version (default: 1.34.7)
 - `systemNodeSize`: VM size (default: Standard_B4as_v2)
 - `systemNodeCount`: Number of nodes (default: 2)
 

@@ -8,7 +8,7 @@ from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
-ROOT = Path("/home/johan/dev/github/aksingress2026")
+ROOT = Path(__file__).resolve().parent
 MD   = (ROOT / "PRESENTATION.md").read_text()
 OUT  = ROOT / "PRESENTATION.pptx"
 
@@ -671,7 +671,7 @@ HANDS_ON_INTROS = {
 }
 HANDS_ON_OUTCOMES = {
     "Enabling ambient Istio on AKS": [
-        "AKS 1.34.7 with Cilium dataplane in Sweden Central",
+        "Pinned AKS 1.34.7 with Cilium dataplane in Sweden Central",
         "Managed Istio add-on running, ambient profile active",
         "demo namespace opted in via label — zero pod restarts",
         "Optional namespace-scoped Waypoint for L7 features",
