@@ -112,6 +112,8 @@ cd 03-appgw-for-containers
 ```
 aksingress2026/
 ├── README.md                          # This file
+├── CONTRIBUTING.md                    # Contribution guidelines
+├── SECURITY.md                        # Security reporting guidance
 ├── shared/
 │   └── sample-app/                    # .NET 8 web application
 │       ├── Program.cs
@@ -195,7 +197,9 @@ The application displays which demo and ingress type is running, making it easy 
 
 ## Contributing
 
-This repository is designed for demonstration and educational purposes. Feel free to:
+This repository is designed for demonstration and educational purposes. See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution expectations and validation guidance.
+
+Feel free to:
 
 - Open issues for bugs or improvements
 - Submit pull requests with enhancements
@@ -210,7 +214,7 @@ az vm list-skus --location swedencentral --size <SKU> --all
 az aks get-versions --location swedencentral --output table
 ```
 
-See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for detailed contribution guidelines and coding standards.
+For security-sensitive issues, see [SECURITY.md](./SECURITY.md) for reporting guidance and support scope.
 
 ## Resources
 
