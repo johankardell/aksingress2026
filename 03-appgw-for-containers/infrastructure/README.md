@@ -125,7 +125,7 @@ The Application Gateway for Containers subnet is delegated to `Microsoft.Service
 
 ## Cost Estimation
 
-Approximate monthly costs (East US region):
+Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Application Gateway for Containers: ~$40/month (base capacity)

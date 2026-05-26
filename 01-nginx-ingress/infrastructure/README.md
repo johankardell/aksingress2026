@@ -81,7 +81,7 @@ The deployment provides these outputs:
 
 ## Cost Estimation
 
-Approximate monthly costs (East US region):
+Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Azure Container Registry (Standard): ~$20/month

@@ -247,7 +247,7 @@ spec:
 
 - Azure CLI (`az`) version 2.50.0+
 - kubectl version 1.27+
-- Docker (for local builds)
+- No local Docker installation required; images are built remotely with Azure Container Registry Tasks
 - Active Azure subscription with permissions to:
   - Create resource groups
   - Create Virtual Networks
@@ -268,7 +268,7 @@ The script will:
 1. Register Microsoft.ServiceNetworking provider
 2. Create Azure resource group
 3. Deploy VNet, AKS cluster, and ACR via Bicep
-4. Build and push Docker image
+4. Build and push the container image with Azure Container Registry Tasks
 5. Enable ALB Controller on AKS
 6. Create ApplicationLoadBalancer resource
 7. Deploy Gateway and HTTPRoute resources
@@ -323,7 +323,7 @@ az aks get-credentials \
   --overwrite-existing
 ```
 
-#### Step 4: Build and Push Image
+#### Step 4: Build and Push Image with ACR Tasks
 
 ```bash
 # Get ACR name
@@ -333,7 +333,7 @@ ACR_NAME=$(az deployment group show \
   --query properties.outputs.acrName.value \
   --output tsv)
 
-# Build and push
+# Build and push remotely in Azure; no local Docker daemon is required
 cd ../shared/sample-app
 az acr build \
   --registry $ACR_NAME \
@@ -600,7 +600,7 @@ az group delete \
 
 ## Cost Breakdown
 
-Approximate monthly costs (East US region):
+Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
 
 | Resource | Cost |
 |----------|------|
