@@ -139,6 +139,8 @@ echo
 # Get script directory early for later use
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+IMAGE_REPOSITORY="aks-ingress-demo"
+source "$REPO_ROOT/shared/scripts/acr-image.sh"
 
 # Deploy infrastructure
 echo -e "${YELLOW}[5/10] Deploying infrastructure (this may take 5-10 minutes)...${NC}"
@@ -185,17 +187,10 @@ fi
 echo -e "${GREEN}✓ AKS credentials configured${NC}"
 echo
 
-# Build and push container image using Azure Container Registry Tasks
-echo -e "${YELLOW}[7/10] Building container image with ACR Tasks...${NC}"
-cd "$REPO_ROOT/shared/sample-app"
-az acr build \
-  --registry $ACR_NAME \
-  --image aks-ingress-demo:latest \
-  --image aks-ingress-demo:envoy-v1.0.0 \
-  --file Dockerfile \
-  . \
-  --output table
-echo -e "${GREEN}✓ Container image built and pushed by ACR Tasks${NC}"
+# Build and push container image using Azure Container Registry Tasks when needed
+echo -e "${YELLOW}[7/10] Ensuring container image exists in ACR...${NC}"
+ensure_sample_app_image "$ACR_NAME" "$REPO_ROOT/shared/sample-app" "$IMAGE_REPOSITORY"
+echo -e "${GREEN}✓ Container image is available in ACR${NC}"
 echo
 
 # Install Envoy Gateway
@@ -245,7 +240,7 @@ cd "$SCRIPT_DIR/../kubernetes"
 # Apply resources in order
 kubectl apply -f gatewayclass.yaml 2>/dev/null || echo "GatewayClass already exists"
 # Update deployment with ACR login server
-sed "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" deployment.yaml | kubectl apply -f -
+sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f gateway.yaml
 kubectl apply -f httproute.yaml

@@ -28,14 +28,11 @@ Visit http://localhost:5000 to see the application.
 ## Building with Azure Container Registry Tasks
 
 ```bash
-az acr build \
-  --registry <acr-name> \
-  --image aks-ingress-demo:latest \
-  --file Dockerfile \
-  .
+source ../scripts/acr-image.sh
+ensure_sample_app_image "<acr-name>" "." "aks-ingress-demo"
 ```
 
-This builds the image remotely in Azure, so the local machine does not need Docker installed.
+This tags the image with a source-content hash, skips the build if that tag already exists in ACR, and builds remotely in Azure when needed. The local machine does not need Docker installed.
 
 ## Technology Stack
 

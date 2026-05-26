@@ -57,7 +57,7 @@ Before running any demo, ensure you have:
   az bicep version
   ```
 
-- Local Docker is **not** required. Deployment scripts build the sample app remotely with Azure Container Registry Tasks (`az acr build`).
+- Local Docker is **not** required. Deployment scripts tag the sample app with a source-content hash and only build it remotely with Azure Container Registry Tasks (`az acr build`) when that tag is missing.
 
 - **Helm** version 3.12 or later
   ```bash
