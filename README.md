@@ -145,7 +145,7 @@ The application displays which demo and ingress type is running, making it easy 
 
 ## Cost Considerations
 
-⚠️ **Important**: Each demo creates billable Azure resources:
+⚠️ **Important**: Each Sweden Central demo creates billable Azure resources. Actual Azure pricing is region-dependent and may vary with usage:
 
 - **AKS cluster (Free tier)**: $0/month
 - **2 x Standard_B4as_v2 nodes**: ~$70/month
