@@ -589,7 +589,7 @@ az group delete \
 
 ## Cost Breakdown
 
-Approximate monthly costs (East US region):
+Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
 
 | Resource | Cost |
 |----------|------|
