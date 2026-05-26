@@ -84,7 +84,11 @@ All demos are configured and tested for **Sweden Central** region:
 
 ## Quick Start
 
-Each demo is self-contained in its own folder with complete infrastructure and deployment automation:
+Each demo is self-contained in its own folder with complete infrastructure and deployment automation.
+Run `./scripts/deploy.sh` for the full sequential path, or run `./scripts/deploy-infra.sh`,
+`./scripts/build-image.sh`, and `./scripts/configure-kubernetes.sh` independently when you want
+separate infrastructure, image build, and Kubernetes configuration phases. Only the Kubernetes
+configuration phase changes or relies on the active `kubectl` context.
 
 ### 1. NGINX Ingress Demo
 ```bash

@@ -264,16 +264,18 @@ spec:
 ./scripts/deploy.sh
 ```
 
-The script will:
-1. Register Microsoft.ServiceNetworking provider
-2. Create Azure resource group
-3. Deploy VNet, AKS cluster, and ACR via Bicep
-4. Build and push the container image with Azure Container Registry Tasks
-5. Enable ALB Controller on AKS
-6. Create ApplicationLoadBalancer resource
-7. Deploy Gateway and HTTPRoute resources
-8. Deploy the application
-9. Display the public URL
+The script runs the three focused deployment phases in sequence:
+1. `./scripts/deploy-infra.sh` registers required Azure providers, creates the resource group, and deploys VNet/AKS/ACR via Bicep. This phase does not use `kubectl` and can be run in parallel with other demos.
+2. `./scripts/build-image.sh` builds and pushes the sample app image with Azure Container Registry Tasks after infrastructure exists.
+3. `./scripts/configure-kubernetes.sh` gets AKS credentials, configures Application Gateway for Containers, deploys Gateway/HTTPRoute/application resources, and displays the public URL. This is the only phase that changes or relies on the active `kubectl` context.
+
+You can also run the phases independently:
+
+```bash
+./scripts/deploy-infra.sh
+./scripts/build-image.sh
+./scripts/configure-kubernetes.sh
+```
 
 **Estimated time**: 10-15 minutes
 

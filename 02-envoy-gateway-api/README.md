@@ -251,14 +251,18 @@ Application-level resource that defines routing logic.
 ./scripts/deploy.sh
 ```
 
-The script will:
-1. Create Azure resource group
-2. Deploy AKS cluster and ACR via Bicep
-3. Build and push the container image with Azure Container Registry Tasks
-4. Install Envoy Gateway via Helm
-5. Deploy Gateway and HTTPRoute resources
-6. Deploy the application
-7. Display the public URL
+The script runs the three focused deployment phases in sequence:
+1. `./scripts/deploy-infra.sh` creates/registers Azure resources and deploys AKS/ACR via Bicep. This phase does not use `kubectl` and can be run in parallel with other demos.
+2. `./scripts/build-image.sh` builds and pushes the sample app image with Azure Container Registry Tasks after infrastructure exists.
+3. `./scripts/configure-kubernetes.sh` gets AKS credentials, installs Envoy Gateway, deploys Gateway/HTTPRoute/application resources, and displays the public URL. This is the only phase that changes or relies on the active `kubectl` context.
+
+You can also run the phases independently:
+
+```bash
+./scripts/deploy-infra.sh
+./scripts/build-image.sh
+./scripts/configure-kubernetes.sh
+```
 
 **Estimated time**: 8-12 minutes
 
