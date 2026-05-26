@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: ${ACR_LOGIN_SERVER}/aks-ingress-demo:latest
+        image: ${ACR_LOGIN_SERVER}/aks-ingress-demo:${IMAGE_TAG}
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

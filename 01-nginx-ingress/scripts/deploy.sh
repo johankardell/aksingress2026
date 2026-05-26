@@ -20,6 +20,8 @@ DEPLOYMENT_NAME="nginx-demo-deployment"
 NGINX_NAMESPACE="ingress-nginx"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+IMAGE_REPOSITORY="aks-ingress-demo"
+source "$REPO_ROOT/shared/scripts/acr-image.sh"
 
 get_user_object_id() {
   if [ -n "${USER_OBJECT_ID:-}" ]; then
@@ -183,17 +185,10 @@ fi
 echo -e "${GREEN}✓ AKS credentials configured${NC}"
 echo
 
-# Build and push container image using Azure Container Registry Tasks
-echo -e "${YELLOW}[6/9] Building container image with ACR Tasks...${NC}"
-cd "$REPO_ROOT/shared/sample-app"
-az acr build \
-  --registry $ACR_NAME \
-  --image aks-ingress-demo:latest \
-  --image aks-ingress-demo:nginx-v1.0.0 \
-  --file Dockerfile \
-  . \
-  --output table
-echo -e "${GREEN}✓ Container image built and pushed by ACR Tasks${NC}"
+# Build and push container image using Azure Container Registry Tasks when needed
+echo -e "${YELLOW}[6/9] Ensuring container image exists in ACR...${NC}"
+ensure_sample_app_image "$ACR_NAME" "$REPO_ROOT/shared/sample-app" "$IMAGE_REPOSITORY"
+echo -e "${GREEN}✓ Container image is available in ACR${NC}"
 echo
 
 # Install NGINX Ingress Controller
@@ -217,7 +212,7 @@ echo -e "${YELLOW}[8/9] Deploying application...${NC}"
 cd "$SCRIPT_DIR/../kubernetes"
 
 # Update deployment with ACR login server
-sed "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" deployment.yaml | kubectl apply -f -
+sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f ingress.yaml
 

@@ -155,13 +155,9 @@ ACR_NAME=$(az deployment group show \
   --query properties.outputs.acrName.value \
   --output tsv)
 
-# Build and push remotely in Azure; no local Docker daemon is required
-cd ../shared/sample-app
-az acr build \
-  --registry $ACR_NAME \
-  --image aks-ingress-demo:latest \
-  --file Dockerfile \
-  .
+# Build and push remotely only if the source-content tag is missing
+source ../shared/scripts/acr-image.sh
+ensure_sample_app_image "$ACR_NAME" "../shared/sample-app" "aks-ingress-demo"
 ```
 
 #### Step 4: Install NGINX Ingress Controller
@@ -188,7 +184,7 @@ cd ../01-nginx-ingress/kubernetes
 ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
 
 # Deploy application (replace ACR_LOGIN_SERVER in deployment.yaml)
-sed "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" deployment.yaml | kubectl apply -f -
+sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f ingress.yaml
 ```
