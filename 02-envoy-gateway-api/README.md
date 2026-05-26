@@ -239,7 +239,7 @@ Application-level resource that defines routing logic.
 - Azure CLI (`az`) version 2.50.0+
 - kubectl version 1.27+
 - Helm version 3.12+
-- Docker (for local builds)
+- No local Docker installation required; images are built remotely with Azure Container Registry Tasks
 - Active Azure subscription with permissions to create resources
 
 ## Deployment
@@ -254,7 +254,7 @@ Application-level resource that defines routing logic.
 The script will:
 1. Create Azure resource group
 2. Deploy AKS cluster and ACR via Bicep
-3. Build and push Docker image
+3. Build and push the container image with Azure Container Registry Tasks
 4. Install Envoy Gateway via Helm
 5. Deploy Gateway and HTTPRoute resources
 6. Deploy the application
@@ -298,7 +298,7 @@ az aks get-credentials \
   --overwrite-existing
 ```
 
-#### Step 3: Build and Push Image
+#### Step 3: Build and Push Image with ACR Tasks
 
 ```bash
 # Get ACR name
@@ -308,11 +308,12 @@ ACR_NAME=$(az deployment group show \
   --query properties.outputs.acrName.value \
   --output tsv)
 
-# Build and push
+# Build and push remotely in Azure; no local Docker daemon is required
 cd ../shared/sample-app
 az acr build \
   --registry $ACR_NAME \
   --image aks-ingress-demo:latest \
+  --platform linux/arm64 \
   --file Dockerfile \
   .
 ```

@@ -1,5 +1,8 @@
-# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILDPLATFORM=linux/amd64
+ARG TARGETPLATFORM=linux/arm64
+
+# Build on the ACR Tasks host platform; the published .NET app is platform-neutral.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project file and restore dependencies
@@ -10,21 +13,15 @@ RUN dotnet restore
 COPY . .
 RUN dotnet publish -c Release -o /app/publish --no-restore
 
-# Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# Runtime stage targets the AKS node platform.
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy published app
 COPY --from=build /app/publish .
 
-# Change ownership to non-root user
-RUN chown -R appuser:appuser /app
-
 # Switch to non-root user
-USER appuser
+USER $APP_UID
 
 # Expose port
 EXPOSE 8080

@@ -54,10 +54,7 @@ Before running any demo, ensure you have:
   az bicep version
   ```
 
-- **Docker** (for local testing)
-  ```bash
-  docker --version
-  ```
+- Local Docker is **not** required. Deployment scripts build the sample app remotely with Azure Container Registry Tasks (`az acr build`).
 
 - **Helm** version 3.12 or later
   ```bash
