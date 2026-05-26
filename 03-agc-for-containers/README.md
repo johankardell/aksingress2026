@@ -316,6 +316,7 @@ az deployment group create \
 The automated `scripts/deploy-infra.sh` also assigns the AGC managed identity these required permissions:
 
 - Reader on the AKS resource group
+- Reader on the AKS-managed infrastructure resource group
 - AppGw for Containers Configuration Manager on the AKS-managed infrastructure resource group
 - Network Contributor on the delegated AGC subnet
 

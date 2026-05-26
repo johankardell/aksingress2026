@@ -18,6 +18,7 @@ DEPLOYMENT_NAME="agc-demo-deployment"
 ALB_CONTROLLER_NAMESPACE="azure-alb-system"
 ALB_RESOURCE_NAMESPACE="alb-infra"
 ALB_RESOURCE_NAME="alb"
+APPLICATIONLOADBALANCER_CRD="applicationloadbalancer.alb.networking.azure.io"
 ALB_HELM_VERSION="1.10.28"
 FEDERATED_IDENTITY_NAME="alb-controller"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -98,7 +99,7 @@ kubectl wait --for=condition=available --timeout=300s deployment/alb-controller 
 echo "Waiting for ApplicationLoadBalancer CRD..."
 ALB_CRD_READY=false
 for _ in {1..30}; do
-  if kubectl get crd applicationloadbalancers.alb.networking.azure.io >/dev/null 2>&1; then
+  if kubectl get crd "$APPLICATIONLOADBALANCER_CRD" >/dev/null 2>&1; then
     ALB_CRD_READY=true
     break
   fi
@@ -111,7 +112,7 @@ if [ "$ALB_CRD_READY" != "true" ]; then
   kubectl get crd | grep -i alb || true
   exit 1
 fi
-kubectl wait --for=condition=Established --timeout=300s crd/applicationloadbalancers.alb.networking.azure.io
+kubectl wait --for=condition=Established --timeout=300s "crd/$APPLICATIONLOADBALANCER_CRD"
 
 kubectl create namespace "$ALB_RESOURCE_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 cat <<EOF | kubectl apply -f -
@@ -125,6 +126,26 @@ spec:
   - $AGC_SUBNET_ID
 EOF
 kubectl get applicationloadbalancer -n "$ALB_RESOURCE_NAMESPACE" "$ALB_RESOURCE_NAME"
+
+echo "Waiting for Application Gateway for Containers resource to become ready (this may take 5-6 minutes)..."
+ALB_DEPLOYMENT_READY=false
+for _ in {1..60}; do
+  ALB_DEPLOYMENT_REASON=$(kubectl get applicationloadbalancer -n "$ALB_RESOURCE_NAMESPACE" "$ALB_RESOURCE_NAME" -o jsonpath='{range .status.conditions[?(@.type=="Deployment")]}{.reason}{end}' 2>/dev/null || echo "")
+  if [ "$ALB_DEPLOYMENT_REASON" = "Ready" ]; then
+    ALB_DEPLOYMENT_READY=true
+    break
+  fi
+  echo -n "."
+  sleep 10
+done
+echo
+
+if [ "$ALB_DEPLOYMENT_READY" != "true" ]; then
+  echo -e "${RED}Application Gateway for Containers did not become ready in time.${NC}" >&2
+  kubectl get applicationloadbalancer -n "$ALB_RESOURCE_NAMESPACE" "$ALB_RESOURCE_NAME" -o yaml
+  exit 1
+fi
+
 echo -e "${GREEN}✓ Application Gateway for Containers configured${NC}"
 echo
 

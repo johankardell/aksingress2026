@@ -203,6 +203,7 @@ echo
 
 echo -e "${YELLOW}[6/6] Assigning AGC managed identity permissions...${NC}"
 ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$READER_ROLE_ID" "$RESOURCE_GROUP_ID" "Reader on AKS resource group"
+ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$READER_ROLE_ID" "$NODE_RESOURCE_GROUP_ID" "Reader on AKS infrastructure resource group"
 ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$AGC_CONFIG_MANAGER_ROLE_ID" "$NODE_RESOURCE_GROUP_ID" "AppGw for Containers Configuration Manager on AKS infrastructure resource group"
 ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$NETWORK_CONTRIBUTOR_ROLE_ID" "$AGC_SUBNET_ID" "Network Contributor on AGC delegated subnet"
 echo -e "${GREEN}✓ AGC managed identity permissions assigned${NC}"
