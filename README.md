@@ -2,7 +2,7 @@
 
 A comprehensive comparison of three different ingress approaches for Azure Kubernetes Service (AKS), demonstrating the evolution from traditional Ingress-based solutions to modern, Azure-native architectures.
 
-> **✅ Verified Configuration**: All demos are tested and configured for **Sweden Central** region with verified Azure resources (Kubernetes 1.34.7, Standard_B4as_v2 VMs, Free AKS tier).
+> **✅ Verified Configuration**: All demos are tested and configured for **Sweden Central** region with verified Azure resources (Kubernetes 1.35.4, Standard_B4as_v2 VMs, Free AKS tier).
 
 ## Overview
 
@@ -71,7 +71,7 @@ All demos are configured and tested for **Sweden Central** region:
 | Setting | Value | Status |
 |---------|-------|--------|
 | **Azure Region** | `swedencentral` | ✅ Verified |
-| **Kubernetes Version** | `1.34.7` | ✅ Available & Supported |
+| **Kubernetes Version** | `1.35.4` | ✅ Latest non-preview supported patch |
 | **VM SKU** | `Standard_B4as_v2` | ✅ Available (B-series v2, ARM-based) |
 | **VM Specs** | 4 vCPUs, 16 GiB RAM | Modern Ampere Altra processor |
 | **AKS SKU Tier** | `Free` | Cost-optimized |

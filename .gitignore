@@ -1,28 +1,40 @@
-# .NET
+# .NET build outputs
 bin/
 obj/
+TestResults/
 *.user
 *.suo
+*.rsuser
 .vs/
 
-# Azure
+# Generated Azure/Bicep artifacts
 .azure/
+01-nginx-ingress/infrastructure/*.json
+02-envoy-gateway-api/infrastructure/*.json
+03-appgw-for-containers/infrastructure/*.json
 *.bicep.json
 
-# IDE
+# Kubernetes and Azure local state
+kubeconfig*
+*.kubeconfig
+.kube/
+
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs and diagnostics
 *.log
+*.trx
 
 # Temporary files
 *.tmp
 *.temp
+*.bak

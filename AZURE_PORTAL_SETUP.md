@@ -87,7 +87,7 @@ Each demo's `infrastructure/main.bicepparam` needs:
 using './main.bicep'
 
 param location = 'swedencentral'
-param kubernetesVersion = '1.34.7'
+param kubernetesVersion = '1.35.4'
 param vmSize = 'Standard_B4as_v2'
 param nodeCount = 2
 param userObjectId = '<your-object-id>' // <-- Replace with your Object ID for manual deployments only
