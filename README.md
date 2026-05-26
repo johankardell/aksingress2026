@@ -214,7 +214,7 @@ az vm list-skus --location swedencentral --size <SKU> --all
 az aks get-versions --location swedencentral --output table
 ```
 
-For security-sensitive issues, see [SECURITY.md](./SECURITY.md) for reporting guidance and support scope.
+For security-sensitive issues, see [SECURITY.md](./SECURITY.md) for reporting guidance and support scope. See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for AI-assisted development guidance and coding standards.
 
 ## Resources
 
