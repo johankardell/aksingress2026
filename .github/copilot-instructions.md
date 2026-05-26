@@ -16,7 +16,7 @@ Each demo is self-contained with its own infrastructure, Kubernetes manifests, d
 - **Region**: `swedencentral` (all resources must use this location)
 
 ### Kubernetes Version
-- **Version**: `1.34.7`
+- **Version**: `1.35.4`
 - **Status**: ✅ Verified available in Sweden Central (as of May 2026)
 - **Support Plan**: KubernetesOfficial, AKSLongTermSupport
 

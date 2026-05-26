@@ -168,7 +168,7 @@ Should show:
 ### 2. Get Credentials (Azure RBAC Mode)
 
 ```bash
-# Use regular credentials (not --admin)
+# Use regular Azure RBAC credentials
 az aks get-credentials \
   --resource-group rg-01-nginx-ingress-demo \
   --name <your-cluster-name> \

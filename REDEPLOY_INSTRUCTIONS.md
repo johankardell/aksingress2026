@@ -79,7 +79,7 @@ az deployment group create \
 
 ### 1. Get New Credentials
 
-For each cluster, get credentials with Azure AD auth (not --admin):
+For each cluster, get credentials with Azure AD auth with regular user credentials:
 
 ```bash
 # Demo 01
