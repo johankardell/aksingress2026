@@ -1,6 +1,6 @@
 # AKS Ingress Comparison Demo 2026
 
-A comprehensive comparison of three different ingress approaches for Azure Kubernetes Service (AKS), demonstrating the evolution from deprecated solutions to modern, Azure-native architectures.
+A comprehensive comparison of three different ingress approaches for Azure Kubernetes Service (AKS), demonstrating the evolution from traditional Ingress-based solutions to modern, Azure-native architectures.
 
 > **✅ Verified Configuration**: All demos are tested and configured for **Sweden Central** region with verified Azure resources (Kubernetes 1.34.7, Standard_B4as_v2 VMs, Free AKS tier).
 
@@ -8,7 +8,7 @@ A comprehensive comparison of three different ingress approaches for Azure Kuber
 
 This repository contains three independent demonstrations showcasing different ingress/gateway solutions for AKS:
 
-1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional, now-deprecated approach
+1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional Ingress-based approach
 2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard
 3. **[Application Gateway for Containers](./03-appgw-for-containers/)** - Azure-native ingress solution
 
@@ -18,7 +18,7 @@ Each demo deploys a simple .NET 8 web application to its own AKS cluster, access
 
 | Feature | NGINX Ingress | Gateway API (Envoy) | App Gateway for Containers |
 |---------|---------------|---------------------|---------------------------|
-| **Status** | ⚠️ Deprecated | ✅ Modern Standard | ✅ Azure-Native |
+| **Status** | ⚠️ Legacy / Traditional | ✅ Modern Standard | ✅ Azure-Native |
 | **Specification** | Ingress v1 | Gateway API v1 | Gateway API + Azure Extensions |
 | **Provider** | Community | CNCF/Envoy | Microsoft Azure |
 | **Role-Based** | No | Yes | Yes |
@@ -169,9 +169,9 @@ The application displays which demo and ingress type is running, making it easy 
 ## Choosing the Right Ingress Solution
 
 ### Choose NGINX Ingress if:
-- ❌ **Not recommended** - This approach is deprecated
-- You're maintaining legacy systems that cannot migrate yet
-- You need to understand the old architecture for migration planning
+- ⚠️ You're maintaining existing Ingress-based workloads
+- You need broad ecosystem compatibility with the classic Kubernetes Ingress API
+- You want to understand the traditional architecture before evaluating Gateway API
 
 ### Choose Gateway API (Envoy) if:
 - ✅ You want a vendor-neutral, Kubernetes-native solution

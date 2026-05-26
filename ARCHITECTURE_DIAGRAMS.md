@@ -25,23 +25,23 @@ This repository includes professional draw.io architecture diagrams for each dem
 
 ## Diagram Overview
 
-### Demo 01: NGINX Ingress Controller (Deprecated)
+### Demo 01: NGINX Ingress Controller (Traditional)
 
 **File:** `01-nginx-ingress/architecture.drawio`
 
 **Components:**
 - Internet → Azure Load Balancer
 - NGINX Ingress Controller (in nginx-ingress namespace)
-- Ingress Resource (deprecated API)
+- Ingress Resource (classic Kubernetes API)
 - Application Service and Pods
 - Azure Container Registry (ACR)
 - Log Analytics Workspace
 
 **Key Features:**
-- Shows deprecated NGINX Ingress approach
+- Shows the traditional NGINX Ingress approach
 - Traditional Ingress resource (not Gateway API)
 - Simple architecture for educational purposes
-- Prominently marked as deprecated
+- Clearly framed as the legacy/traditional pattern
 
 **Traffic Flow:**
 ```
@@ -162,13 +162,13 @@ The diagrams use consistent color coding across all three demos:
 
 | Aspect | Demo 01 (NGINX) | Demo 02 (Envoy) | Demo 03 (AppGW) |
 |--------|----------------|-----------------|-----------------|
-| **API** | Ingress (deprecated) | Gateway API v1 | Gateway API v1 |
+| **API** | Ingress v1 | Gateway API v1 | Gateway API v1 |
 | **Controller** | NGINX Ingress | Envoy Gateway | ALB Controller |
 | **Data Plane** | NGINX Pods | Envoy Proxy Pods | Azure AppGW |
 | **Networking** | Azure CNI | Azure CNI | Azure CNI + VNet |
 | **Azure Integration** | Basic | Basic | Native (Managed) |
 | **Subnet Delegation** | No | No | Yes (required) |
-| **Status** | Deprecated | ✅ Recommended | ✅ Azure-Native |
+| **Status** | Legacy / Traditional | ✅ Recommended | ✅ Azure-Native |
 
 ---
 
@@ -210,7 +210,7 @@ All diagrams are fully editable. Common modifications:
 
 These diagrams complement the written documentation in each demo's README:
 
-- **Demo 01 README**: Explains NGINX Ingress deprecation
+- **Demo 01 README**: Explains the traditional NGINX Ingress model and Gateway API tradeoffs
 - **Demo 02 README**: Details Gateway API benefits
 - **Demo 03 README**: Covers Azure-native features
 

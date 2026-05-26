@@ -30,7 +30,7 @@ Audience is expected to know AKS basics, kubectl, Helm and CRDs.
 4. Ingress → Gateway API
 5. Gateway API on AKS with Envoy Gateway
 6. Application Gateway for Containers (AGC) + Gateway API
-7. Legacy: NGINX Ingress on AKS (deprecated reference)
+7. Legacy: NGINX Ingress on AKS (traditional reference)
 8. Managed Argo CD on AKS (vs Flux)
 9. Q&A
 
@@ -537,7 +537,7 @@ Pay attention to two things: (1) the `Association` resource ties AGC to the dele
 
 ---
 
-## Slide 14 — Legacy reference: NGINX Ingress on AKS (deprecated)
+## Slide 14 — Legacy reference: NGINX Ingress on AKS
 
 ```
    Client
@@ -554,11 +554,11 @@ Pay attention to two things: (1) the `Association` resource ties AGC to the dele
 
 - Single resource (`Ingress`) with vendor-specific annotations
 - Extra in-cluster hop (NGINX pod), and another via kube-proxy
-- Still works, but **no longer the recommended pattern** for new AKS workloads
-- Upstream is in maintenance-only mode; users are guided to Gateway API + InGate / Envoy / AGC
+- Still works and Kubernetes Ingress is stable, but the model is limited
+- For new platform designs, Gateway API gives cleaner ownership, portability, and typed extension points
 
 **Speaker notes:**
-Show this last in the ingress part of the talk. It is what most people had in production for years. The arrows tell the story: two extra hops compared to AGC, and configuration that doesn't port across clouds. New designs should default to Gateway API.
+Show this last in the ingress part of the talk. It is what many teams have had in production for years, and it remains a valid pattern. The point is not that Ingress is broken; it is that Gateway API better matches modern platform requirements: clearer ownership, fewer controller-specific annotations, and more portable routing semantics.
 
 ---
 

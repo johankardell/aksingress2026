@@ -29,7 +29,7 @@ spec:
         - name: DEMO_NAME
           value: "NGINX Ingress Demo"
         - name: DEMO_TYPE
-          value: "NGINX Ingress Controller (Deprecated)"
+          value: "NGINX Ingress Controller (Traditional)"
         - name: APP_VERSION
           value: "1.0.0"
         - name: ASPNETCORE_URLS

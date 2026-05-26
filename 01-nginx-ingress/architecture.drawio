@@ -6,7 +6,7 @@
         <mxCell id="1" parent="0" />
         
         <!-- Title -->
-        <mxCell id="title" value="Demo 01: NGINX Ingress Controller Architecture (Deprecated)" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+        <mxCell id="title" value="Demo 01: NGINX Ingress Controller Architecture (Traditional)" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontStyle=1;fontSize=16;" vertex="1" parent="1">
           <mxGeometry x="320" y="40" width="560" height="40" as="geometry" />
         </mxCell>
         
@@ -126,7 +126,7 @@
         </mxCell>
         
         <!-- Deprecation Notice -->
-        <mxCell id="deprecation" value="⚠️ DEPRECATED: NGINX Ingress Controller is being phased out.&#xa;Migrate to Gateway API (Demo 02) for modern Kubernetes networking." style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=2" vertex="1" parent="1">
+        <mxCell id="traditional-note" value="⚠️ TRADITIONAL: NGINX Ingress uses the classic Ingress API.&#xa;Compare with Gateway API (Demo 02) for modern Kubernetes networking." style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=2" vertex="1" parent="1">
           <mxGeometry x="440" y="440" width="380" height="40" as="geometry" />
         </mxCell>
         

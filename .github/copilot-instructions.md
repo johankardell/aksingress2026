@@ -4,7 +4,7 @@
 
 This repository contains three independent demonstrations comparing different ingress/gateway approaches for Azure Kubernetes Service (AKS):
 
-1. **Demo 01**: NGINX Ingress Controller (deprecated, for educational purposes)
+1. **Demo 01**: NGINX Ingress Controller (traditional Ingress pattern, for educational purposes)
 2. **Demo 02**: Gateway API with Envoy (modern, vendor-neutral)
 3. **Demo 03**: Application Gateway for Containers (Azure-native)
 
@@ -102,10 +102,10 @@ The following Microsoft best practices are applied throughout:
 ## Demo-Specific Guidelines
 
 ### Demo 01: NGINX Ingress
-- Prominently mark as **deprecated**
+- Clearly frame as the **traditional** Ingress pattern, not as a deprecated API
 - Include migration guidance to Gateway API
 - Use NGINX Ingress Controller Helm chart
-- Explain why this approach is being phased out
+- Explain why Gateway API is preferred for new platform-oriented designs
 
 ### Demo 02: Gateway API with Envoy
 - Use **Gateway API v1** resources (Gateway, HTTPRoute)

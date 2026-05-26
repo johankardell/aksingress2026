@@ -1,15 +1,17 @@
 # NGINX Ingress Controller Demo
 
-⚠️ **Important**: This demo showcases the traditional NGINX Ingress Controller approach, which is being phased out in favor of modern alternatives like Gateway API and Azure Application Gateway for Containers.
+⚠️ **Important**: This demo showcases the traditional NGINX Ingress Controller approach. Kubernetes Ingress is stable and widely used, but Gateway API and Azure Application Gateway for Containers provide a more expressive, role-oriented model for new designs.
 
 ## Overview
 
-This demo deploys a simple .NET 8 web application to Azure Kubernetes Service (AKS) using the community **NGINX Ingress Controller**. While this has been a popular approach for years, it's now considered deprecated due to:
+This demo deploys a simple .NET 8 web application to Azure Kubernetes Service (AKS) using the community **NGINX Ingress Controller**. This is the classic Ingress-based model: reliable and familiar, but limited compared with Gateway API for platform-oriented scenarios.
 
-- Lack of vendor neutrality (tied to NGINX implementation)
+Key tradeoffs compared with Gateway API:
+
+- Controller-specific annotations reduce portability
 - Limited role-oriented resource model
-- No built-in multi-tenancy support
-- Superseded by Kubernetes Gateway API standard
+- Multi-tenancy requires convention and RBAC discipline rather than first-class API separation
+- Advanced traffic management is less standardized across implementations
 
 **This demo is useful for**:
 - Understanding legacy architectures
@@ -52,7 +54,7 @@ This demo deploys a simple .NET 8 web application to Azure Kubernetes Service (A
 
 ## What is NGINX Ingress Controller?
 
-The NGINX Ingress Controller is a Kubernetes resource that:
+The NGINX Ingress Controller is controller software that:
 - Runs as a deployment in the `ingress-nginx` namespace
 - Exposes a LoadBalancer service with a public IP address
 - Watches for Ingress resources in all namespaces
@@ -67,15 +69,15 @@ The NGINX Ingress Controller is a Kubernetes resource that:
 4. **ConfigMaps**: Configure NGINX behavior
 5. **ClusterIP Services**: Internal services for applications
 
-## Why is it Deprecated?
+## Why Prefer Gateway API for New Designs?
 
-The Kubernetes community is moving away from the Ingress API to the **Gateway API** for several reasons:
+The Kubernetes Ingress API is stable, but it is intentionally limited. Gateway API is the newer Kubernetes networking API for richer routing, clearer ownership boundaries, and portable extension points.
 
-| Issue | NGINX Ingress | Modern Gateway API |
+| Concern | NGINX Ingress | Modern Gateway API |
 |-------|---------------|-------------------|
-| **Vendor Lock-in** | Tied to NGINX | Vendor-neutral |
+| **Portability** | Controller-specific annotations | Vendor-neutral typed resources |
 | **Role Separation** | Single resource | Gateway + Route separation |
-| **Multi-tenancy** | Limited | Native support |
+| **Multi-tenancy** | Convention-based | Native support |
 | **Expressiveness** | Basic routing | Advanced routing capabilities |
 | **Type Safety** | Annotation-heavy | Strongly-typed fields |
 | **Extensibility** | Fragmented | Standardized |
@@ -357,6 +359,6 @@ Approximate monthly costs (East US region):
 
 ---
 
-**Demo Status**: ⚠️ Educational (Deprecated Technology)  
+**Demo Status**: ⚠️ Educational (Traditional Ingress Pattern)  
 **Last Updated**: 2026  
 **Maintained by**: AKS Community Demos
