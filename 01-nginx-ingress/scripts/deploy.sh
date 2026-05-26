@@ -19,7 +19,7 @@ DEPLOYMENT_NAME="nginx-demo-deployment"
 NGINX_NAMESPACE="ingress-nginx"
 
 # Check prerequisites
-echo -e "${YELLOW}[1/9] Checking prerequisites...${NC}"
+echo -e "${YELLOW}[1/10] Checking prerequisites...${NC}"
 command -v az >/dev/null 2>&1 || { echo -e "${RED}Azure CLI is required but not installed.${NC}" >&2; exit 1; }
 command -v kubectl >/dev/null 2>&1 || { echo -e "${RED}kubectl is required but not installed.${NC}" >&2; exit 1; }
 command -v helm >/dev/null 2>&1 || { echo -e "${RED}Helm is required but not installed.${NC}" >&2; exit 1; }
@@ -28,7 +28,7 @@ echo -e "${GREEN}✓ All prerequisites installed${NC}"
 echo
 
 # Register required Azure providers
-echo -e "${YELLOW}[2/9] Registering Azure resource providers...${NC}"
+echo -e "${YELLOW}[2/10] Registering Azure resource providers...${NC}"
 echo "Registering Microsoft.ContainerService..."
 az provider register --namespace Microsoft.ContainerService --wait 2>/dev/null || echo "Already registered"
 echo "Registering Microsoft.OperationsManagement..."
@@ -39,7 +39,7 @@ echo -e "${GREEN}✓ Resource providers registered${NC}"
 echo
 
 # Create resource group
-echo -e "${YELLOW}[3/9] Creating resource group...${NC}"
+echo -e "${YELLOW}[3/10] Creating resource group...${NC}"
 az group create \
   --name $RESOURCE_GROUP \
   --location $LOCATION \
@@ -47,14 +47,21 @@ az group create \
 echo -e "${GREEN}✓ Resource group created${NC}"
 echo
 
+# Get current user object ID for RBAC
+echo -e "${YELLOW}[4/10] Getting user information for RBAC...${NC}"
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
+echo -e "${GREEN}✓ User Object ID: ${USER_OBJECT_ID}${NC}"
+echo
+
 # Deploy infrastructure
-echo -e "${YELLOW}[4/9] Deploying infrastructure (this may take 5-10 minutes)...${NC}"
+echo -e "${YELLOW}[5/10] Deploying infrastructure (this may take 5-10 minutes)...${NC}"
 cd "$(dirname "$0")/../infrastructure"
 az deployment group create \
   --resource-group $RESOURCE_GROUP \
   --name $DEPLOYMENT_NAME \
   --template-file main.bicep \
   --parameters main.bicepparam \
+  --parameters userObjectId=$USER_OBJECT_ID \
   --output table
 
 # Get deployment outputs
@@ -82,7 +89,7 @@ echo -e "  ACR: ${ACR_NAME}"
 echo
 
 # Get AKS credentials (using admin credentials for deployment)
-echo -e "${YELLOW}[5/9] Getting AKS credentials...${NC}"
+echo -e "${YELLOW}[6/10] Getting AKS credentials...${NC}"
 az aks get-credentials \
   --resource-group $RESOURCE_GROUP \
   --name $AKS_NAME \
@@ -99,7 +106,7 @@ echo -e "${GREEN}✓ Admin credentials configured${NC}"
 echo
 
 # Build and push Docker image
-echo -e "${YELLOW}[6/9] Building and pushing Docker image...${NC}"
+echo -e "${YELLOW}[7/10] Building and pushing Docker image...${NC}"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 cd "$REPO_ROOT/shared/sample-app"
@@ -114,7 +121,7 @@ echo -e "${GREEN}✓ Docker image built and pushed${NC}"
 echo
 
 # Install NGINX Ingress Controller
-echo -e "${YELLOW}[7/9] Installing NGINX Ingress Controller...${NC}"
+echo -e "${YELLOW}[8/10] Installing NGINX Ingress Controller...${NC}"
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 
@@ -130,7 +137,7 @@ echo -e "${GREEN}✓ NGINX Ingress Controller installed${NC}"
 echo
 
 # Deploy application
-echo -e "${YELLOW}[8/9] Deploying application...${NC}"
+echo -e "${YELLOW}[9/10] Deploying application...${NC}"
 cd "$SCRIPT_DIR/../kubernetes"
 
 # Update deployment with ACR login server
@@ -142,7 +149,7 @@ echo -e "${GREEN}✓ Application deployed${NC}"
 echo
 
 # Wait for ingress to get external IP
-echo -e "${YELLOW}[9/9] Waiting for external IP (this may take 2-3 minutes)...${NC}"
+echo -e "${YELLOW}[10/10] Waiting for external IP (this may take 2-3 minutes)...${NC}"
 for i in {1..30}; do
   EXTERNAL_IP=$(kubectl get ingress nginx-demo-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
   if [ -n "$EXTERNAL_IP" ]; then
