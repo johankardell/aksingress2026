@@ -114,7 +114,7 @@ The deployment provides these outputs:
 - `appgwSubnetId`: Application Gateway subnet resource ID
 - `agcIdentityClientId`: Client ID of the AGC managed identity
 - `resourceGroupName`: Resource group name
-- `nodeResourceGroupName`: Node resource group name
+- `nodeResourceGroupName`: AKS-managed infrastructure resource group name (`<resource-group>-infra`)
 
 ## Subnet Delegation
 

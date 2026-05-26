@@ -33,7 +33,7 @@ param tags object = {
 var aksClusterName = '${baseName}-aks-${uniqueString(resourceGroup().id)}'
 var acrName = replace('${baseName}acr${uniqueString(resourceGroup().id)}', '-', '')
 var logAnalyticsName = '${baseName}-logs-${uniqueString(resourceGroup().id)}'
-var nodeResourceGroupName = '${aksClusterName}-nodes-rg'
+var nodeResourceGroupName = '${resourceGroup().name}-infra'
 
 // Log Analytics Workspace
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {

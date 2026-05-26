@@ -77,7 +77,7 @@ The deployment provides these outputs:
 - `acrName`: Name of the ACR
 - `acrLoginServer`: Login server URL for ACR
 - `resourceGroupName`: Resource group name
-- `nodeResourceGroupName`: Node resource group name
+- `nodeResourceGroupName`: AKS-managed infrastructure resource group name (`<resource-group>-infra`)
 
 ## Cost Estimation
 

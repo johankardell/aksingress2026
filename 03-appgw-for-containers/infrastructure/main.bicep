@@ -34,7 +34,7 @@ var aksClusterName = '${baseName}-aks-${uniqueString(resourceGroup().id)}'
 var acrName = replace('${baseName}acr${uniqueString(resourceGroup().id)}', '-', '')
 var logAnalyticsName = '${baseName}-logs-${uniqueString(resourceGroup().id)}'
 var vnetName = '${baseName}-vnet-${uniqueString(resourceGroup().id)}'
-var nodeResourceGroupName = '${aksClusterName}-nodes-rg'
+var nodeResourceGroupName = '${resourceGroup().name}-infra'
 
 // Virtual Network
 resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
