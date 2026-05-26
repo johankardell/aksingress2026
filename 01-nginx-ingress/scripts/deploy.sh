@@ -104,6 +104,22 @@ fi
 echo -e "${GREEN}✓ User credentials configured${NC}"
 echo
 
+# Verify Azure RBAC propagation before using kubectl
+RBAC_READY=false
+for i in {1..30}; do
+  if kubectl get nodes >/dev/null 2>&1; then
+    RBAC_READY=true
+    break
+  fi
+  echo -e "${YELLOW}Waiting for Azure RBAC permissions to propagate... (${i}/30)${NC}"
+  sleep 10
+done
+
+if [ "$RBAC_READY" != "true" ]; then
+  echo -e "${RED}Azure RBAC permissions are not ready yet. Wait a few minutes, then rerun the script.${NC}"
+  exit 1
+fi
+
 # Build and push Docker image
 echo -e "${YELLOW}[7/10] Building and pushing Docker image...${NC}"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
