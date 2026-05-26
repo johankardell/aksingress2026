@@ -175,13 +175,13 @@ RG=rg-mesh-demo
 LOC=swedencentral
 AKS=aks-mesh-demo
 
-# 1. Create resource group + AKS (Free tier, K8s 1.34.7, Sweden Central)
+# 1. Create resource group + AKS (Free tier, K8s 1.35.4, Sweden Central)
 az group create -n $RG -l $LOC
 
 az aks create \
   -g $RG -n $AKS \
   --location $LOC \
-  --kubernetes-version 1.34.7 \
+  --kubernetes-version 1.35.4 \
   --tier free \
   --node-vm-size Standard_B4as_v2 \
   --node-count 3 \
@@ -468,7 +468,7 @@ SUBNET_ALB_ID=$(az network vnet subnet show  -g $RG --vnet-name $VNET -n $SUBNET
 
 # 2. AKS with workload identity + Azure CNI
 az aks create -g $RG -n $AKS -l $LOC \
-  --kubernetes-version 1.34.7 \
+  --kubernetes-version 1.35.4 \
   --tier free \
   --node-vm-size Standard_B4as_v2 \
   --node-count 3 \
@@ -678,7 +678,7 @@ AKS=aks-gitops-demo
 
 az group create -n $RG -l $LOC
 az aks create -g $RG -n $AKS -l $LOC \
-  --kubernetes-version 1.34.7 \
+  --kubernetes-version 1.35.4 \
   --tier free \
   --node-vm-size Standard_B4as_v2 \
   --node-count 3 \

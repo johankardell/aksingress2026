@@ -2,226 +2,176 @@
 
 ## Project Overview
 
-This repository contains three independent demonstrations comparing different ingress/gateway approaches for Azure Kubernetes Service (AKS):
+This repository contains three independent AKS ingress/gateway demos:
 
-1. **Demo 01**: NGINX Ingress Controller (traditional Ingress pattern, for educational purposes)
-2. **Demo 02**: Gateway API with Envoy (modern, vendor-neutral)
-3. **Demo 03**: Application Gateway for Containers (Azure-native)
+1. **Demo 01**: NGINX Ingress Controller - traditional Kubernetes Ingress pattern for comparison and migration education.
+2. **Demo 02**: Gateway API with Envoy - modern, vendor-neutral Gateway API implementation.
+3. **Demo 03**: Application Gateway for Containers - Azure-native Gateway API implementation.
 
-Each demo is self-contained with its own infrastructure, Kubernetes manifests, deployment automation, and documentation.
+Each demo is self-contained with its own Bicep infrastructure, Kubernetes manifests, Bash automation, cleanup script, and documentation. All demos share the sample application in `shared/sample-app/`.
 
-## Verified Azure Configuration (Sweden Central)
+## Verified Azure Configuration
 
-### Location
-- **Region**: `swedencentral` (all resources must use this location)
-
-### Kubernetes Version
-- **Version**: `1.34.7`
-- **Status**: ✅ Verified available in Sweden Central (as of May 2026)
-- **Support Plan**: KubernetesOfficial, AKSLongTermSupport
-
-### VM SKU
-- **SKU**: `Standard_B4as_v2`
-- **Specs**: 4 vCPUs, 16 GiB RAM
-- **Type**: B-series burstable, ARM-based (Ampere Altra)
-- **Status**: ✅ Verified available in Sweden Central with no restrictions
-- **Cost**: ~$35/month per node
-
-### AKS SKU
-- **Tier**: `Free`
-- **Configuration**:
+- **Region**: `swedencentral` for all Azure resources.
+- **AKS Kubernetes version**: `1.35.4`, latest non-preview supported patch verified in Sweden Central as of May 2026. Do not use preview AKS versions unless explicitly requested.
+- **VM SKU**: `Standard_B4as_v2`, 4 vCPU / 16 GiB, AMD64/x64 burstable B-series v2.
+- **AKS SKU**: Free tier:
   ```bicep
   sku: {
     name: 'Base'
     tier: 'Free'
   }
   ```
+- **Resource groups**:
+  - Demo 01: `rg-01-nginx-ingress-demo`
+  - Demo 02: `rg-02-envoy-gateway-demo`
+  - Demo 03: `rg-03-appgw-containers-demo`
+- **AKS-managed infrastructure resource group**: use the demo resource group name with `-infra` suffix, e.g. `rg-02-envoy-gateway-demo-infra`.
 
-### Resource Group Naming
-- Demo 01 (NGINX): `rg-01-nginx-ingress-demo`
-- Demo 02 (Envoy): `rg-02-envoy-gateway-demo`
-- Demo 03 (AppGW): `rg-03-appgw-containers-demo`
+## Repository Structure
 
-## Code Standards and Rules
+```text
+aksingress2026/
+├── .github/copilot-instructions.md
+├── shared/sample-app/                  # Shared .NET sample app
+│   ├── Program.cs
+│   ├── sample-app.csproj
+│   ├── Dockerfile
+│   └── README.md
+├── 01-nginx-ingress/
+│   ├── infrastructure/
+│   ├── kubernetes/
+│   └── scripts/
+├── 02-envoy-gateway-api/
+│   ├── infrastructure/
+│   ├── kubernetes/
+│   └── scripts/
+└── 03-appgw-for-containers/
+    ├── infrastructure/
+    ├── kubernetes/
+    └── scripts/
+```
 
-### Infrastructure as Code (Bicep)
+## Infrastructure Rules
 
-1. **Always use Bicep** for Azure infrastructure (not Terraform or ARM templates)
-2. **Parameterize everything**: Location, VM size, K8s version, node count
-3. **Use parameter files**: Separate `.bicepparam` files for each deployment
-4. **Free AKS tier**: All clusters must use the Free tier unless explicitly requested
-5. **Managed identities**: Use system-assigned for AKS, user-assigned where needed
-6. **Tagging**: Include Environment, Demo, and ManagedBy tags on all resources
+- Use **Bicep** for Azure infrastructure. Do not introduce Terraform or hand-written ARM templates.
+- Keep configuration consistent across all three demos unless the user asks for a demo-specific change.
+- Parameterize location, Kubernetes version, VM size, and node count.
+- Keep `.bicepparam` files updated with shared defaults.
+- Generated ARM JSON files in demo `infrastructure/` folders are ignored by `.gitignore`; edit Bicep sources, not generated JSON.
+- Use managed identities and role assignments; never use service principals with secrets.
+- Keep Azure Container Registry admin user disabled.
+- Include `Environment`, `Demo`, and `ManagedBy` tags on Azure resources.
+- Before changing Azure versions or SKUs, verify Sweden Central availability:
+  ```bash
+  az aks get-versions --location swedencentral --output table
+  az vm list-skus --location swedencentral --size <SKU> --all --output table
+  ```
 
-### Kubernetes Manifests
+## AKS and RBAC Notes
 
-1. **Resource requests/limits**: Always specify for production-quality demos
-2. **Health probes**: Include both liveness and readiness probes
-3. **Namespace**: Default namespace for application resources
-4. **Environment variables**: Use for demo-specific configuration
-5. **Image pull policy**: `Always` for demo purposes
+- AKS clusters use Azure RBAC role assignments and ACR Pull for the kubelet identity.
+- Scripts are intended to be idempotent. If `RoleAssignmentExists` occurs, deploy scripts should clean only the known conflicting role assignments for that demo and retry once.
+- Demo scripts currently use AKS admin credentials for deployment. Do not expand admin-credential usage beyond the existing pattern unless explicitly requested.
+- Demo 03 uses the AKS Web App Routing / ALB Controller integration and must create the `ApplicationLoadBalancer` resource before applying Gateway resources.
 
-### Application Code
+## Container Build Workflow
 
-1. **Tech Stack**: .NET 8 minimal API
-2. **Containerization**: Multi-stage Dockerfile for optimal image size
-3. **Health endpoints**: `/health` for Kubernetes probes
-4. **Logging**: Log all requests for demo purposes
-5. **Non-root user**: Run containers as non-root user
+- Local Docker is **not required** on the VM running the scripts.
+- Use `az acr build` / ACR Tasks to build the shared sample app image remotely.
+- Do **not** pass `--platform linux/arm64` and do not use `FROM --platform=...` in the Dockerfile. ACR Tasks dependency scanning has failed on that syntax in this repo, and the selected node SKU is AMD64/x64.
+- Keep the Dockerfile multi-stage:
+  - build stage: `mcr.microsoft.com/dotnet/sdk:8.0`
+  - runtime stage: `mcr.microsoft.com/dotnet/aspnet:8.0`
+- Keep health endpoint `/health`; Kubernetes manifests use readiness and liveness probes.
 
-### Automation Scripts
+## Sample Application
 
-1. **Language**: Bash (not PowerShell)
-2. **Error handling**: Use `set -e` to exit on errors
-3. **Output formatting**: Color-coded output (green for success, yellow for info, red for warnings)
-4. **Idempotency**: Scripts should be safe to run multiple times
-5. **Cleanup**: Always provide cleanup scripts to avoid resource costs
+- Current tech stack: **.NET 8 minimal API**.
+- Project path: `shared/sample-app/sample-app.csproj`.
+- The app exposes:
+  - `/`
+  - `/health`
+  - `/api/info`
+- Keep demo-specific display text configurable with environment variables in the Kubernetes manifests.
 
-### Documentation
+## Kubernetes Manifest Rules
 
-1. **Professional quality**: Assume public repository visibility
-2. **Architecture diagrams**: Use ASCII/text-based diagrams in markdown
-3. **Step-by-step instructions**: Both automated and manual deployment paths
-4. **Prerequisites**: Clearly list all required tools and permissions
-5. **Cost estimates**: Provide monthly cost breakdowns
-6. **Troubleshooting**: Include common issues and solutions
+- Use stable Kubernetes APIs only.
+- Include resource requests and limits.
+- Include liveness and readiness probes for the app.
+- Use `imagePullPolicy: Always` for demo deployments.
+- Application resources live in the `default` namespace unless a demo explicitly requires otherwise.
+- Demo 02 and Demo 03 use Gateway API `v1` resources (`Gateway`, `HTTPRoute`).
 
-## Microsoft Best Practices
+## Automation Script Rules
 
-The following Microsoft best practices are applied throughout:
+- Scripts must be Bash, not PowerShell.
+- Use `set -e`; add `set -o pipefail` where pipelines affect control flow.
+- Use color-coded output already established in the repo.
+- Scripts should be safe to rerun and should not fail on already-existing expected resources.
+- Always provide cleanup scripts and keep them aligned with deploy scripts.
+- Avoid local Docker checks; require only tools the workflow actually needs (`az`, `kubectl`, and `helm` where used).
 
-- ✅ Infrastructure as Code (Bicep)
-- ✅ Managed Identities (no service principals with secrets)
-- ✅ Workload Identity enabled (modern authentication)
-- ✅ Azure CNI networking (advanced networking capabilities)
-- ✅ Azure Monitor integration via Log Analytics
-- ✅ RBAC enabled with proper role assignments
-- ✅ Auto-upgrade channels configured
-- ✅ Network policies enabled (Azure network policy)
-
-## Demo-Specific Guidelines
+## Demo-Specific Guidance
 
 ### Demo 01: NGINX Ingress
-- Clearly frame as the **traditional** Ingress pattern, not as a deprecated API
-- Include migration guidance to Gateway API
-- Use NGINX Ingress Controller Helm chart
-- Explain why Gateway API is preferred for new platform-oriented designs
+
+- Describe as **traditional** or **legacy comparison**, not as a deprecated Kubernetes API.
+- Kubernetes Ingress is stable but feature-frozen; Gateway API is preferred for new advanced ingress designs.
+- Use the NGINX Ingress Controller Helm chart.
+- Include migration guidance toward Gateway API / AGC.
 
 ### Demo 02: Gateway API with Envoy
-- Use **Gateway API v1** resources (Gateway, HTTPRoute)
-- Install Envoy Gateway via Helm
-- Demonstrate role-oriented design (infrastructure vs application)
-- Show benefits over traditional Ingress
+
+- Use Gateway API v1 resources.
+- Install Envoy Gateway using the repo's existing deployment pattern.
+- Emphasize role-oriented design: platform owns Gateway/GatewayClass, apps own HTTPRoute.
 
 ### Demo 03: Application Gateway for Containers
-- Enable Web App Routing add-on on AKS
-- Use ApplicationLoadBalancer CRD
-- Demonstrate Azure-native integration
-- Highlight enterprise features (WAF-ready, Azure Monitor)
 
-## File Structure Rules
+- Use AKS Web App Routing / ALB Controller.
+- Ensure `ApplicationLoadBalancer` is created before Gateway and HTTPRoute resources.
+- Highlight Azure-native integration, WAF-readiness, and Azure Monitor integration.
 
-```
-aksingress2026/
-├── .github/
-│   └── copilot-instructions.md          # This file
-├── shared/
-│   └── sample-app/                       # Shared .NET app
-│       ├── Program.cs
-│       ├── sample-app.csproj
-│       ├── Dockerfile
-│       └── README.md
-├── 01-nginx-ingress/
-│   ├── README.md                         # Demo-specific docs
-│   ├── infrastructure/
-│   │   ├── main.bicep                    # Infrastructure template
-│   │   ├── main.bicepparam               # Parameters
-│   │   └── README.md                     # Infrastructure docs
-│   ├── kubernetes/
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   └── ingress.yaml
-│   └── scripts/
-│       ├── deploy.sh                     # Automated deployment
-│       └── cleanup.sh                    # Resource cleanup
-├── 02-envoy-gateway-api/                 # Same structure
-└── 03-appgw-for-containers/              # Same structure
-```
+## Documentation Rules
 
-## Common Tasks
+- Keep README files professional and public-repo ready.
+- Use Markdown tables for comparisons and cost estimates.
+- Keep manual and automated deployment instructions in sync with scripts.
+- Cost estimates should say they are approximate and region-dependent unless current Sweden Central pricing has been verified.
+- When changing infrastructure defaults, update:
+  - root `README.md`
+  - demo README files if relevant
+  - `infrastructure/README.md` files
+  - `.github/copilot-instructions.md`
+  - presentation sources if they mention the changed value
 
-### Adding a New Demo Feature
+## Validation Checklist
 
-1. Update the Bicep template in `infrastructure/main.bicep`
-2. Update parameters in `main.bicepparam`
-3. Update Kubernetes manifests in `kubernetes/`
-4. Update deployment script in `scripts/deploy.sh`
-5. Document in the demo README
-6. Test the full deployment workflow
-7. Update cost estimates
+Before finishing changes:
 
-### Changing Azure Configuration
+- Run Bicep build for changed templates:
+  ```bash
+  az bicep build --file 01-nginx-ingress/infrastructure/main.bicep
+  az bicep build --file 02-envoy-gateway-api/infrastructure/main.bicep
+  az bicep build --file 03-appgw-for-containers/infrastructure/main.bicep
+  ```
+- Run shell syntax checks for changed scripts:
+  ```bash
+  bash -n 01-nginx-ingress/scripts/deploy.sh 02-envoy-gateway-api/scripts/deploy.sh 03-appgw-for-containers/scripts/deploy.sh
+  ```
+- For sample app changes, run:
+  ```bash
+  dotnet publish shared/sample-app/sample-app.csproj -c Release
+  ```
+- Search for stale values after configuration changes, especially AKS version, region, VM SKU, and resource group names.
 
-1. **Always verify availability** in Sweden Central:
-   ```bash
-   az vm list-skus --location swedencentral --size <SKU> --all
-   az aks get-versions --location swedencentral
-   ```
-2. Update all three demos consistently
-3. Update parameter files, templates, and documentation
-4. Test at least one demo to verify changes
+## Do Not Do
 
-### Updating Documentation
-
-1. Keep README files concise but comprehensive
-2. Use markdown tables for comparisons
-3. Include code examples with proper syntax highlighting
-4. Provide both quick start and detailed manual steps
-5. Always include cleanup instructions
-
-## Code Quality Checklist
-
-Before committing changes, verify:
-
-- [ ] All three demos use consistent configuration
-- [ ] Resource names follow the naming convention (rg-01-, rg-02-, rg-03-)
-- [ ] Bicep templates validate successfully (`az bicep build`)
-- [ ] Scripts are executable (`chmod +x`)
-- [ ] Documentation is updated to match code changes
-- [ ] Cost estimates are current
-- [ ] No hardcoded values (use parameters)
-- [ ] Proper error handling in scripts
-- [ ] Comments explain "why" not "what"
-
-## Forbidden Actions
-
-**Never do these things:**
-
-1. ❌ Use deprecated Kubernetes API versions
-2. ❌ Store secrets in code or configuration files
-3. ❌ Use admin credentials for ACR
-4. ❌ Hardcode resource names (use generated unique names)
-5. ❌ Skip resource cleanup scripts
-6. ❌ Use preview/beta features without explicit approval
-7. ❌ Change region from Sweden Central without verification
-8. ❌ Use VM SKUs not verified in Sweden Central
-
-## Testing and Validation
-
-Before marking work complete:
-
-1. **Bicep validation**: Run `az bicep build` on all templates
-2. **Linting**: Check YAML syntax for Kubernetes manifests
-3. **Script testing**: Test deploy.sh in a clean environment
-4. **Documentation review**: Ensure all steps are accurate
-5. **Cost verification**: Double-check monthly estimates
-
-## Contact and Support
-
-This is a demo repository for educational purposes. All code follows Microsoft best practices and is production-quality but should be adapted for specific production requirements.
-
----
-
-**Last Updated**: May 2026  
-**Azure Region**: Sweden Central  
-**Verified For**: AKS demos and ingress comparison
+- Do not commit secrets, kubeconfigs, tokens, credentials, or personal tenant identifiers.
+- Do not require local Docker for deployment scripts.
+- Do not use preview/beta Azure or Kubernetes features without explicit user approval.
+- Do not change the Azure region away from Sweden Central without verifying availability and updating docs.
+- Do not hand-edit generated ARM JSON as the source of truth.
+- Do not remove cleanup scripts.

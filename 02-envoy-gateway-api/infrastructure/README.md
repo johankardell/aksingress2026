@@ -52,7 +52,7 @@ Key parameters in `main.bicepparam`:
 
 - `location`: Azure region (default: swedencentral)
 - `baseName`: Base name for resources (default: envoy-demo)
-- `kubernetesVersion`: AKS version (default: 1.34.7)
+- `kubernetesVersion`: AKS version (default: 1.35.4)
 - `systemNodeSize`: VM size (default: Standard_B4as_v2)
 - `systemNodeCount`: Number of nodes (default: 2)
 
@@ -91,7 +91,7 @@ The deployment provides these outputs:
 - `acrName`: Name of the ACR
 - `acrLoginServer`: Login server URL for ACR
 - `resourceGroupName`: Resource group name
-- `nodeResourceGroupName`: Node resource group name
+- `nodeResourceGroupName`: AKS-managed infrastructure resource group name (`<resource-group>-infra`)
 
 ## Modern AKS Features Explained
 

@@ -1,6 +1,6 @@
 # AKS Ingress Demo - Sample Application
 
-This is a simple .NET 8 minimal API web application used across all three AKS ingress demos.
+This is a simple .NET 10 minimal API web application used across all three AKS ingress demos.
 
 ## Features
 
@@ -36,6 +36,6 @@ This tags the image with a source-content hash, skips the build if that tag alre
 
 ## Technology Stack
 
-- .NET 8 minimal API
+- .NET 10 minimal API
 - No external dependencies
 - Optimized for containerized deployments

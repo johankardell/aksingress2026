@@ -2,7 +2,7 @@
 
 A comprehensive comparison of three different ingress approaches for Azure Kubernetes Service (AKS), demonstrating the evolution from traditional Ingress-based solutions to modern, Azure-native architectures.
 
-> **✅ Verified Configuration**: All demos are tested and configured for **Sweden Central** region with verified Azure resources (Kubernetes 1.34.7, Standard_B4as_v2 VMs, Free AKS tier).
+> **✅ Verified Configuration**: All demos are tested and configured for **Sweden Central** region with verified Azure resources (Kubernetes 1.35.4, Standard_B4as_v2 VMs, Free AKS tier).
 
 ## Overview
 
@@ -12,7 +12,7 @@ This repository contains three independent demonstrations showcasing different i
 2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard
 3. **[Application Gateway for Containers](./03-appgw-for-containers/)** - Azure-native ingress solution
 
-Each demo deploys a simple .NET 8 web application to its own AKS cluster, accessible via a public IP address.
+Each demo deploys a simple .NET 10 web application to its own AKS cluster, accessible via a public IP address.
 
 ## Demo Comparison
 
@@ -71,7 +71,7 @@ All demos are configured and tested for **Sweden Central** region:
 | Setting | Value | Status |
 |---------|-------|--------|
 | **Azure Region** | `swedencentral` | ✅ Verified |
-| **Kubernetes Version** | `1.34.7` | ✅ Available & Supported |
+| **Kubernetes Version** | `1.35.4` | ✅ Latest non-preview supported patch |
 | **VM SKU** | `Standard_B4as_v2` | ✅ Available (B-series v2, ARM-based) |
 | **VM Specs** | 4 vCPUs, 16 GiB RAM | Modern Ampere Altra processor |
 | **AKS SKU Tier** | `Free` | Cost-optimized |
@@ -112,9 +112,11 @@ cd 03-appgw-for-containers
 ```
 aksingress2026/
 ├── README.md                          # This file
+├── CONTRIBUTING.md                    # Contribution guidelines
+├── SECURITY.md                        # Security reporting guidance
 ├── LICENSE                            # MIT License
 ├── shared/
-│   └── sample-app/                    # .NET 8 web application
+│   └── sample-app/                    # .NET 10 web application
 │       ├── Program.cs
 │       ├── sample-app.csproj
 │       ├── Dockerfile
@@ -138,7 +140,7 @@ aksingress2026/
 
 ## Sample Application
 
-All demos use the same [.NET 8 minimal API application](./shared/sample-app/), which provides:
+All demos use the same [.NET 10 minimal API application](./shared/sample-app/), which provides:
 
 - **Main Page** (`/`) - Beautiful UI showing demo information
 - **Health Check** (`/health`) - Kubernetes liveness/readiness probe
@@ -196,7 +198,9 @@ The application displays which demo and ingress type is running, making it easy 
 
 ## Contributing
 
-This repository is designed for demonstration and educational purposes. Feel free to:
+This repository is designed for demonstration and educational purposes. See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution expectations and validation guidance.
+
+Feel free to:
 
 - Open issues for bugs or improvements
 - Submit pull requests with enhancements
@@ -211,7 +215,7 @@ az vm list-skus --location swedencentral --size <SKU> --all
 az aks get-versions --location swedencentral --output table
 ```
 
-See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for detailed contribution guidelines and coding standards.
+For security-sensitive issues, see [SECURITY.md](./SECURITY.md) for reporting guidance and support scope. See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for AI-assisted development guidance and coding standards.
 
 ## Resources
 
