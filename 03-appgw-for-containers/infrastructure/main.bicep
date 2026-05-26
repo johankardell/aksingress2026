@@ -171,6 +171,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
     }
     
     // Security
+    disableLocalAccounts: true
     aadProfile: {
       managed: true
       enableAzureRBAC: true

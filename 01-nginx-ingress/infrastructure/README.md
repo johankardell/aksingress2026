@@ -4,7 +4,7 @@ This folder contains Bicep infrastructure-as-code templates for deploying the AK
 
 ## Resources Deployed
 
-- **AKS Cluster**: Standard configuration with Azure CNI networking
+- **AKS Cluster**: Standard configuration with Azure CNI networking, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
 - **Azure Container Registry**: For storing the demo application container image
 - **Log Analytics Workspace**: For monitoring and diagnostics
 - **Managed Identity**: System-assigned identity for AKS
@@ -81,7 +81,7 @@ The deployment provides these outputs:
 
 ## Cost Estimation
 
-Approximate monthly costs (East US region):
+Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Azure Container Registry (Standard): ~$20/month

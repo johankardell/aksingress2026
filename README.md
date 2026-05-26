@@ -37,6 +37,9 @@ Before running any demo, ensure you have:
   - Create Azure Container Registry
   - Assign role-based access control (RBAC)
 
+  AKS access is configured through Microsoft Entra ID and Azure RBAC. The
+  demos disable local AKS accounts and do not use admin kubeconfigs.
+
 - **Azure CLI** (`az`) version 2.50.0 or later
   ```bash
   az --version
@@ -54,10 +57,7 @@ Before running any demo, ensure you have:
   az bicep version
   ```
 
-- **Docker** (for local testing)
-  ```bash
-  docker --version
-  ```
+- Local Docker is **not** required. Deployment scripts build the sample app remotely with Azure Container Registry Tasks (`az acr build`).
 
 - **Helm** version 3.12 or later
   ```bash
@@ -112,6 +112,7 @@ cd 03-appgw-for-containers
 ```
 aksingress2026/
 ├── README.md                          # This file
+├── LICENSE                            # MIT License
 ├── shared/
 │   └── sample-app/                    # .NET 8 web application
 │       ├── Program.cs
@@ -147,7 +148,7 @@ The application displays which demo and ingress type is running, making it easy 
 
 ## Cost Considerations
 
-⚠️ **Important**: Each demo creates billable Azure resources:
+⚠️ **Important**: Each Sweden Central demo creates billable Azure resources. Actual Azure pricing is region-dependent and may vary with usage:
 
 - **AKS cluster (Free tier)**: $0/month
 - **2 x Standard_B4as_v2 nodes**: ~$70/month
@@ -227,7 +228,7 @@ See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for d
 
 ## License
 
-MIT License - see individual demo folders for specific license information.
+MIT License - see [LICENSE](./LICENSE).
 
 ## Support
 

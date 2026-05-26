@@ -5,7 +5,7 @@ This folder contains Bicep infrastructure-as-code templates for deploying AKS wi
 ## Resources Deployed
 
 - **Virtual Network**: With dedicated subnets for AKS and Application Gateway for Containers
-- **AKS Cluster**: With Application Gateway for Containers (Web App Routing) enabled
+- **AKS Cluster**: With Application Gateway for Containers (Web App Routing), Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
 - **Azure Container Registry**: For storing container images
 - **Log Analytics Workspace**: For monitoring and diagnostics
 - **Managed Identities**: System-assigned for AKS, user-assigned for Application Gateway for Containers
@@ -19,6 +19,7 @@ This infrastructure showcases Azure-native ingress capabilities:
 - **Web App Routing**: AKS add-on for simplified ingress configuration
 - **Virtual Network Integration**: Dedicated subnet delegation for Application Gateway
 - **Workload Identity**: Modern authentication for Azure services
+- **Microsoft Entra ID + Azure RBAC**: User access without admin kubeconfigs
 - **Azure Monitor Integration**: Native observability
 
 ## Architecture
@@ -124,7 +125,7 @@ The Application Gateway for Containers subnet is delegated to `Microsoft.Service
 
 ## Cost Estimation
 
-Approximate monthly costs (East US region):
+Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Application Gateway for Containers: ~$40/month (base capacity)

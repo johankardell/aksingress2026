@@ -4,7 +4,7 @@ This folder contains Bicep infrastructure-as-code templates for deploying the AK
 
 ## Resources Deployed
 
-- **AKS Cluster**: With Workload Identity and OIDC Issuer enabled (modern best practices)
+- **AKS Cluster**: With Workload Identity, OIDC Issuer, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
 - **Azure Container Registry**: For storing container images
 - **Log Analytics Workspace**: For monitoring and diagnostics
 - **Managed Identity**: System-assigned identity for AKS
@@ -17,6 +17,7 @@ This infrastructure enables modern AKS practices:
 - **Gateway API Support**: Ready for Gateway API resources
 - **Workload Identity**: Modern authentication mechanism for pods
 - **OIDC Issuer**: For workload identity federation
+- **Microsoft Entra ID + Azure RBAC**: User access without admin kubeconfigs
 - **Azure CNI**: Advanced networking capabilities
 - **Azure Monitor Integration**: Comprehensive observability
 
@@ -105,7 +106,7 @@ Provides advanced networking where each pod gets an IP address from the virtual 
 
 ## Cost Estimation
 
-Approximate monthly costs (East US region):
+Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Azure Container Registry (Standard): ~$20/month

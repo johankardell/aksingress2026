@@ -25,12 +25,17 @@ dotnet run
 
 Visit http://localhost:5000 to see the application.
 
-## Building with Docker
+## Building with Azure Container Registry Tasks
 
 ```bash
-docker build -t aks-ingress-demo:latest .
-docker run -p 8080:8080 -e DEMO_NAME="Local Test" -e DEMO_TYPE="Local Docker" aks-ingress-demo:latest
+az acr build \
+  --registry <acr-name> \
+  --image aks-ingress-demo:latest \
+  --file Dockerfile \
+  .
 ```
+
+This builds the image remotely in Azure, so the local machine does not need Docker installed.
 
 ## Technology Stack
 
