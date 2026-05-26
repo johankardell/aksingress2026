@@ -30,7 +30,7 @@ Audience is expected to know AKS basics, kubectl, Helm and CRDs.
 4. Ingress → Gateway API
 5. Gateway API on AKS with Envoy Gateway
 6. Application Gateway for Containers (AGC) + Gateway API
-7. Legacy: NGINX Ingress on AKS (traditional reference)
+7. Legacy: community ingress-nginx on AKS (retirement reference)
 8. Managed Argo CD on AKS (vs Flux)
 9. Q&A
 
@@ -268,9 +268,14 @@ Before we talk about *why* Ingress isn't enough anymore, let's make sure everyon
 
 ---
 
-## Slide 9 — Why Ingress is no longer enough
+## Slide 9 — Why Ingress alone is no longer enough
 
-**Limitations of `Ingress`**
+**Important distinction**
+- Kubernetes `Ingress` API is stable, not deprecated
+- The community `kubernetes/ingress-nginx` controller is the retired/EOL component
+- Gateway API is the recommended direction for new, richer traffic-management designs
+
+**Limitations of `Ingress` as an API model**
 - Annotation soup: every controller invented its own annotations → not portable
 - Single role: cluster admin and app dev edit the same object
 - No first-class TCP/UDP, gRPC, traffic splitting, header-based routing
@@ -287,7 +292,7 @@ Before we talk about *why* Ingress isn't enough anymore, let's make sure everyon
 - Same spec across NGINX, Envoy, Cilium, Azure AGC, GKE, AWS — workload portability
 
 **Speaker notes:**
-Gateway API is to Ingress what `Deployment` was to `ReplicationController`: same intent, much better data model and extension points. The key word is *role-oriented*: a platform team owns the `Gateway`, dev teams own `HTTPRoute`s and attach to it via `parentRefs`. That alone removes 80% of the annotation collisions we used to have.
+Be precise here: the Kubernetes `Ingress` API is stable and existing workloads can keep using it. The retirement concern is specifically the community `kubernetes/ingress-nginx` controller implementation, not the core API. Gateway API is to Ingress what `Deployment` was to `ReplicationController`: same intent, much better data model and extension points. The key word is *role-oriented*: a platform team owns the `Gateway`, dev teams own `HTTPRoute`s and attach to it via `parentRefs`. That alone removes 80% of the annotation collisions we used to have.
 
 ---
 
@@ -537,7 +542,7 @@ Pay attention to two things: (1) the `Association` resource ties AGC to the dele
 
 ---
 
-## Slide 14 — Legacy reference: NGINX Ingress on AKS
+## Slide 14 — Legacy reference: community ingress-nginx on AKS
 
 ```
    Client
@@ -552,13 +557,13 @@ Pay attention to two things: (1) the `Association` resource ties AGC to the dele
               Service ──► Pod (via kube-proxy)
 ```
 
-- Single resource (`Ingress`) with vendor-specific annotations
-- Extra in-cluster hop (NGINX pod), and another via kube-proxy
-- Still works and Kubernetes Ingress is stable, but the model is limited
+- Kubernetes `Ingress` API: stable, still valid
+- Community `kubernetes/ingress-nginx` controller: retired/EOL implementation
+- Single resource (`Ingress`) with controller-specific annotations
 - For new platform designs, Gateway API gives cleaner ownership, portability, and typed extension points
 
 **Speaker notes:**
-Show this last in the ingress part of the talk. It is what many teams have had in production for years, and it remains a valid pattern. The point is not that Ingress is broken; it is that Gateway API better matches modern platform requirements: clearer ownership, fewer controller-specific annotations, and more portable routing semantics.
+Show this last in the ingress part of the talk. It is what many teams have had in production for years, and the `Ingress` API itself remains a valid Kubernetes API. The correction is that the community `kubernetes/ingress-nginx` controller is the piece being retired, so new designs should avoid depending on it. Gateway API better matches modern platform requirements: clearer ownership, fewer controller-specific annotations, and more portable routing semantics.
 
 ---
 
