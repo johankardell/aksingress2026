@@ -17,10 +17,16 @@ spec:
         app: nginx-demo-app
         demo: nginx-ingress
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: app
         image: ${ACR_LOGIN_SERVER}/aks-ingress-demo:latest
         imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
         ports:
         - containerPort: 8080
           name: http
