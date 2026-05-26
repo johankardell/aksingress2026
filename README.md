@@ -109,6 +109,7 @@ cd 03-appgw-for-containers
 ```
 aksingress2026/
 ├── README.md                          # This file
+├── LICENSE                            # MIT License
 ├── shared/
 │   └── sample-app/                    # .NET 8 web application
 │       ├── Program.cs
@@ -224,7 +225,7 @@ See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for d
 
 ## License
 
-MIT License - see individual demo folders for specific license information.
+MIT License - see [LICENSE](./LICENSE).
 
 ## Support
 
