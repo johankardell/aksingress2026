@@ -67,7 +67,7 @@ echo
 # Get current user object ID for RBAC
 echo -e "${YELLOW}[5/10] Getting user information for RBAC...${NC}"
 USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
-echo -e "${GREEN}✓ User Object ID: ${USER_OBJECT_ID}${NC}"
+echo -e "${GREEN}✓ User Object ID obtained for RBAC assignment${NC}"
 echo
 
 # Get script directory early for later use
@@ -121,12 +121,11 @@ echo -e "  AKS Cluster: ${AKS_NAME}"
 echo -e "  ACR: ${ACR_NAME}"
 echo
 
-# Get AKS credentials (using admin credentials for deployment)
+# Get AKS credentials using Entra ID and Azure RBAC
 echo -e "${YELLOW}[7/10] Getting AKS credentials...${NC}"
 az aks get-credentials \
   --resource-group $RESOURCE_GROUP \
   --name $AKS_NAME \
-  --admin \
   --overwrite-existing \
   --output table
 
@@ -135,7 +134,7 @@ if [ -f ~/.kube/config ]; then
   chmod 600 ~/.kube/config
 fi
 
-echo -e "${GREEN}✓ Admin credentials configured${NC}"
+echo -e "${GREEN}✓ User credentials configured${NC}"
 echo
 
 # Build and push Docker image

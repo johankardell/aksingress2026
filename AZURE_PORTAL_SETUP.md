@@ -85,10 +85,10 @@ Each demo's `infrastructure/main.bicepparam` needs:
 using './main.bicep'
 
 param location = 'swedencentral'
-param kubernetesVersion = '1.34.7'
+param kubernetesVersion = '1.35.4'
 param vmSize = 'Standard_B4as_v2'
 param nodeCount = 2
-param userObjectId = '<YOUR_OBJECT_ID_HERE>' // <-- Replace with your Object ID
+// Pass userObjectId at deployment time; do not commit tenant-specific object IDs
 ```
 
 ### 3. Files to Update
@@ -227,11 +227,10 @@ az aks get-credentials \
   --name <cluster-name> \
   --overwrite-existing
 
-# OR use admin credentials (bypasses Azure RBAC)
+# Re-run regular credentials after verifying Azure RBAC assignments
 az aks get-credentials \
   --resource-group <rg-name> \
   --name <cluster-name> \
-  --admin \
   --overwrite-existing
 ```
 

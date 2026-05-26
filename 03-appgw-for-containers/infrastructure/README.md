@@ -60,7 +60,7 @@ Key parameters in `main.bicepparam`:
 
 - `location`: Azure region (default: swedencentral)
 - `baseName`: Base name for resources (default: appgw-demo)
-- `kubernetesVersion`: AKS version (default: 1.34.7)
+- `kubernetesVersion`: AKS version (default: 1.35.4)
 - `systemNodeSize`: VM size (default: Standard_B4as_v2)
 - `systemNodeCount`: Number of nodes (default: 2)
 
@@ -82,12 +82,16 @@ Application Gateway for Containers (AGC) is Azure's modern, cloud-native applica
 # Create resource group
 az group create --name rg-03-appgw-containers-demo --location swedencentral
 
+# Get the signed-in user for Azure RBAC
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
+
 # Deploy Bicep template
 az deployment group create \
   --resource-group rg-03-appgw-containers-demo \
   --name appgw-demo-deployment \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId=$USER_OBJECT_ID
 ```
 
 ### Get Deployment Outputs
@@ -124,7 +128,7 @@ The Application Gateway for Containers subnet is delegated to `Microsoft.Service
 
 ## Cost Estimation
 
-Approximate monthly costs (East US region):
+Approximate monthly costs (Sweden Central region; actual costs are approximate and region-dependent):
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Application Gateway for Containers: ~$40/month (base capacity)

@@ -589,7 +589,7 @@ az group delete \
 
 ## Cost Breakdown
 
-Approximate monthly costs (East US region):
+Approximate monthly costs (Sweden Central region; actual costs are approximate and region-dependent):
 
 | Resource | Cost |
 |----------|------|

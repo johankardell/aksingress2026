@@ -161,15 +161,7 @@ This is then passed to the Bicep template as a parameter override, which takes p
 
 ## Parameter Files
 
-Both parameter files still contain a default user object ID:
-- `/02-envoy-gateway-api/infrastructure/main.bicepparam`
-- `/03-appgw-for-containers/infrastructure/main.bicepparam`
-
-```bicep
-param userObjectId = '8a264367-2c98-4953-b851-549a347c2b31'
-```
-
-However, the deployment scripts override this with the current user's ID, ensuring the correct user gets RBAC permissions regardless of who runs the script.
+The parameter files intentionally do not contain a default user object ID. Deployment scripts pass the current user's ID with `--parameters userObjectId=$USER_OBJECT_ID`, ensuring the correct user gets RBAC permissions without committing tenant-specific identifiers.
 
 ## Validation
 
@@ -202,7 +194,7 @@ After deployment, verify Azure Portal access by navigating to the AKS cluster an
 
 - The `userObjectId` parameter is required and must be a valid Azure AD Object ID
 - The deployment scripts automatically retrieve this for the signed-in user
-- Manual deployments using `az deployment group create` directly should specify `--parameters userObjectId=<your-object-id>`
+- Manual deployments using `az deployment group create` directly should specify `--parameters userObjectId=$USER_OBJECT_ID` after setting `USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)`
 - The RBAC role assignments are idempotent and safe to redeploy
 - Cleanup scripts are unaffected by these changes
 

@@ -12,8 +12,6 @@ Your Bicep files have been updated to enable Azure Portal Kubernetes resource vi
 - `03-appgw-for-containers/infrastructure/main.bicep` - Added Azure RBAC + role assignments
 - `03-appgw-for-containers/infrastructure/main.bicepparam` - Added your Object ID
 
-**Your Object ID:** `8a264367-2c98-4953-b851-549a347c2b31`
-
 ## Changes Made
 
 1. **Added `userObjectId` parameter** to all Bicep templates
@@ -110,10 +108,7 @@ kubectl get nodes
 kubectl get pods --all-namespaces
 ```
 
-If you get permission errors, use admin credentials temporarily:
-```bash
-az aks get-credentials --admin ...
-```
+If you get permission errors, verify the Azure RBAC role assignments instead of using local admin credentials. Local AKS accounts are disabled by the templates.
 
 ### 3. Test Azure Portal Access
 
@@ -138,7 +133,7 @@ RG_NAME="<your-rg-name>"
 CLUSTER_ID=$(az aks show -g $RG_NAME -n $CLUSTER_NAME --query id -o tsv)
 
 az role assignment list \
-  --assignee 8a264367-2c98-4953-b851-549a347c2b31 \
+  --assignee <signed-in-user-object-id> \
   --scope $CLUSTER_ID
 ```
 
@@ -156,10 +151,7 @@ az aks get-credentials \
   --overwrite-existing
 ```
 
-Or use admin credentials (bypasses Azure RBAC):
-```bash
-az aks get-credentials --admin ...
-```
+Local admin credentials are disabled by the templates; verify Azure RBAC assignments and re-run regular `az aks get-credentials` if access fails.
 
 ## Summary
 

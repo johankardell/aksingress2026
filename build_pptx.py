@@ -671,7 +671,7 @@ HANDS_ON_INTROS = {
 }
 HANDS_ON_OUTCOMES = {
     "Enabling ambient Istio on AKS": [
-        "AKS 1.34.7 with Cilium dataplane in Sweden Central",
+        "AKS 1.35.4 with Cilium dataplane in Sweden Central",
         "Managed Istio add-on running, ambient profile active",
         "demo namespace opted in via label — zero pod restarts",
         "Optional namespace-scoped Waypoint for L7 features",
