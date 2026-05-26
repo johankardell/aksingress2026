@@ -85,7 +85,7 @@
           <mxGeometry x="840" y="610" width="100" height="60" as="geometry" />
         </mxCell>
         
-        <mxCell id="pods" value="Pods (2x)&#xa;.NET 8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9" vertex="1" parent="1">
+        <mxCell id="pods" value="Pods (2x)&#xa;.NET 10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9" vertex="1" parent="1">
           <mxGeometry x="850" y="635" width="80" height="30" as="geometry" />
         </mxCell>
         

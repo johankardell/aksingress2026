@@ -4,7 +4,7 @@
 
 ## Overview
 
-This demo deploys a simple .NET 8 web application to Azure Kubernetes Service (AKS) using **Application Gateway for Containers** (AGC), Microsoft's modern, cloud-native application load balancer built specifically for containerized workloads.
+This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (AKS) using **Application Gateway for Containers** (AGC), Microsoft's modern, cloud-native application load balancer built specifically for containerized workloads.
 
 **Why Application Gateway for Containers?**
 - ✅ **Azure-Native**: Deep integration with Azure networking, security, and monitoring

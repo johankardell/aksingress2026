@@ -12,7 +12,7 @@ This repository contains three independent demonstrations showcasing different i
 2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard
 3. **[Application Gateway for Containers](./03-appgw-for-containers/)** - Azure-native ingress solution
 
-Each demo deploys a simple .NET 8 web application to its own AKS cluster, accessible via a public IP address.
+Each demo deploys a simple .NET 10 web application to its own AKS cluster, accessible via a public IP address.
 
 ## Demo Comparison
 
@@ -114,7 +114,7 @@ aksingress2026/
 ├── README.md                          # This file
 ├── LICENSE                            # MIT License
 ├── shared/
-│   └── sample-app/                    # .NET 8 web application
+│   └── sample-app/                    # .NET 10 web application
 │       ├── Program.cs
 │       ├── sample-app.csproj
 │       ├── Dockerfile
@@ -138,7 +138,7 @@ aksingress2026/
 
 ## Sample Application
 
-All demos use the same [.NET 8 minimal API application](./shared/sample-app/), which provides:
+All demos use the same [.NET 10 minimal API application](./shared/sample-app/), which provides:
 
 - **Main Page** (`/`) - Beautiful UI showing demo information
 - **Health Check** (`/health`) - Kubernetes liveness/readiness probe

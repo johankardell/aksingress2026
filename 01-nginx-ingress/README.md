@@ -4,7 +4,7 @@
 
 ## Overview
 
-This demo deploys a simple .NET 8 web application to Azure Kubernetes Service (AKS) using the community **NGINX Ingress Controller**. This is the classic Ingress-based model: reliable and familiar, but limited compared with Gateway API for platform-oriented scenarios.
+This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (AKS) using the community **NGINX Ingress Controller**. This is the classic Ingress-based model: reliable and familiar, but limited compared with Gateway API for platform-oriented scenarios.
 
 Key tradeoffs compared with Gateway API:
 

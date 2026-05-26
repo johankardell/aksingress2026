@@ -63,7 +63,7 @@ Each demo is self-contained with its own infrastructure, Kubernetes manifests, d
 
 ### Application Code
 
-1. **Tech Stack**: .NET 8 minimal API
+1. **Tech Stack**: .NET 10 minimal API
 2. **Containerization**: Multi-stage Dockerfile for optimal image size
 3. **Health endpoints**: `/health` for Kubernetes probes
 4. **Logging**: Log all requests for demo purposes
