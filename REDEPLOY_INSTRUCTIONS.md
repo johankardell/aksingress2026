@@ -6,13 +6,13 @@ Your Bicep files have been updated to enable Azure Portal Kubernetes resource vi
 
 ✅ All 6 files updated:
 - `01-nginx-ingress/infrastructure/main.bicep` - Added Azure RBAC + role assignments
-- `01-nginx-ingress/infrastructure/main.bicepparam` - Added your Object ID
+- `01-nginx-ingress/infrastructure/main.bicepparam` - Uses deployment-time Object ID
 - `02-envoy-gateway-api/infrastructure/main.bicep` - Added Azure RBAC + role assignments
-- `02-envoy-gateway-api/infrastructure/main.bicepparam` - Added your Object ID
+- `02-envoy-gateway-api/infrastructure/main.bicepparam` - Uses deployment-time Object ID
 - `03-appgw-for-containers/infrastructure/main.bicep` - Added Azure RBAC + role assignments
-- `03-appgw-for-containers/infrastructure/main.bicepparam` - Added your Object ID
+- `03-appgw-for-containers/infrastructure/main.bicepparam` - Uses deployment-time Object ID
 
-**Your Object ID:** `8a264367-2c98-4953-b851-549a347c2b31`
+**Your Object ID:** `<your-object-id>`
 
 ## Changes Made
 
@@ -48,6 +48,12 @@ cd /home/johan/dev/github/aksingress2026
 ./03-appgw-for-containers/scripts/deploy.sh
 ```
 
+The deployment scripts automatically resolve your signed-in user's Object ID with:
+
+```bash
+az ad signed-in-user show --query id -o tsv
+```
+
 ### Option 2: Update Existing Clusters (Faster - ~10 minutes)
 
 Update in-place without deleting:
@@ -60,28 +66,31 @@ cd 01-nginx-ingress/infrastructure
 az deployment group create \
   --resource-group rg-01-nginx-ingress-demo \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId=<your-object-id>
 
 # Update Demo 02
 cd ../../02-envoy-gateway-api/infrastructure
 az deployment group create \
   --resource-group rg-02-envoy-gateway-demo \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId=<your-object-id>
 
 # Update Demo 03
 cd ../../03-appgw-for-containers/infrastructure
 az deployment group create \
   --resource-group rg-03-appgw-containers-demo \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId=<your-object-id>
 ```
 
 ## After Redeployment
 
 ### 1. Get New Credentials
 
-For each cluster, get credentials with Azure AD auth (not --admin):
+For each cluster, get credentials with Microsoft Entra ID auth and Azure RBAC:
 
 ```bash
 # Demo 01
@@ -110,10 +119,9 @@ kubectl get nodes
 kubectl get pods --all-namespaces
 ```
 
-If you get permission errors, use admin credentials temporarily:
-```bash
-az aks get-credentials --admin ...
-```
+If you get permission errors, verify the Azure role assignments below. These
+demos disable local AKS accounts, so admin kubeconfigs are not available during
+normal deployment.
 
 ### 3. Test Azure Portal Access
 
@@ -138,7 +146,7 @@ RG_NAME="<your-rg-name>"
 CLUSTER_ID=$(az aks show -g $RG_NAME -n $CLUSTER_NAME --query id -o tsv)
 
 az role assignment list \
-  --assignee 8a264367-2c98-4953-b851-549a347c2b31 \
+  --assignee <your-object-id> \
   --scope $CLUSTER_ID
 ```
 
@@ -156,10 +164,9 @@ az aks get-credentials \
   --overwrite-existing
 ```
 
-Or use admin credentials (bypasses Azure RBAC):
-```bash
-az aks get-credentials --admin ...
-```
+Admin kubeconfigs bypass Azure RBAC and are intentionally unavailable for these
+demos because local AKS accounts are disabled. Treat re-enabling local accounts
+as a separate break-glass operation only, then disable them again immediately.
 
 ## Summary
 

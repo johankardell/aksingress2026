@@ -4,7 +4,7 @@ This guide explains how to enable viewing Kubernetes resources (Deployments, Ser
 
 ## Prerequisites
 
-You need your Azure AD user Object ID:
+You need your Microsoft Entra ID user Object ID:
 ```bash
 az ad signed-in-user show --query id -o tsv
 ```
@@ -15,17 +15,18 @@ Save this value - you'll need it for the configuration.
 
 To view Kubernetes resources in the Azure Portal, AKS clusters must be configured with:
 
-1. **Azure AD Integration** - Managed Azure AD integration enabled
+1. **Microsoft Entra ID Integration** - Managed Entra ID integration enabled
 2. **Azure RBAC** - Azure RBAC for Kubernetes authorization enabled
 3. **Role Assignments** - Your user needs specific Azure roles
+4. **Local Accounts Disabled** - Admin kubeconfigs are unavailable for normal access
 
 ## Current State
 
-The demos are currently deployed with:
-- ❌ Azure AD integration: **Disabled**
-- ❌ Azure RBAC: **Disabled**
-- ✅ Local Kubernetes RBAC: **Enabled**
-- ✅ Admin credentials: **Working** (for deployments)
+The demos are configured with:
+- ✅ Microsoft Entra ID integration: **Enabled**
+- ✅ Azure RBAC: **Enabled**
+- ✅ Local AKS accounts: **Disabled**
+- ❌ Admin kubeconfigs: **Unavailable** (except after a separate break-glass reconfiguration)
 
 ## Required Changes
 
@@ -39,10 +40,11 @@ Each demo's `infrastructure/main.bicep` needs these changes:
 param userObjectId string
 ```
 
-#### Enable Azure RBAC (in AKS resource properties)
+#### Enable Azure RBAC and Disable Local Accounts (in AKS resource properties)
 ```bicep
 properties: {
   enableRBAC: true
+  disableLocalAccounts: true
   aadProfile: {
     managed: true
     enableAzureRBAC: true
@@ -88,7 +90,7 @@ param location = 'swedencentral'
 param kubernetesVersion = '1.34.7'
 param vmSize = 'Standard_B4as_v2'
 param nodeCount = 2
-param userObjectId = '<YOUR_OBJECT_ID_HERE>' // <-- Replace with your Object ID
+param userObjectId = '<your-object-id>' // <-- Replace with your Object ID for manual deployments only
 ```
 
 ### 3. Files to Update
@@ -115,7 +117,16 @@ param userObjectId = '<YOUR_OBJECT_ID_HERE>' // <-- Replace with your Object ID
    echo "Your Object ID: $USER_ID"
    ```
 
-2. **Update the Bicep files** as described above (or let me do it for you)
+2. **For manual deployments, pass the Object ID at deployment time:**
+   ```bash
+   az deployment group create \
+     --resource-group <resource-group> \
+     --template-file main.bicep \
+     --parameters main.bicepparam \
+     --parameters userObjectId=<your-object-id>
+   ```
+
+   The provided deployment scripts do this automatically by resolving the signed-in user.
 
 3. **Clean up existing deployments:**
    ```bash
@@ -165,10 +176,10 @@ Should show:
 }
 ```
 
-### 2. Get Credentials (Azure RBAC Mode)
+### 2. Get Credentials (Microsoft Entra ID + Azure RBAC Mode)
 
 ```bash
-# Use regular credentials (not --admin)
+# Use regular credentials
 az aks get-credentials \
   --resource-group rg-01-nginx-ingress-demo \
   --name <your-cluster-name> \
@@ -226,14 +237,12 @@ az aks get-credentials \
   --resource-group <rg-name> \
   --name <cluster-name> \
   --overwrite-existing
-
-# OR use admin credentials (bypasses Azure RBAC)
-az aks get-credentials \
-  --resource-group <rg-name> \
-  --name <cluster-name> \
-  --admin \
-  --overwrite-existing
 ```
+
+Admin kubeconfigs bypass Azure RBAC and are intentionally unavailable for these
+demos because local AKS accounts are disabled. Resolve access issues through
+Entra ID sign-in and Azure role assignments instead; only re-enable local
+accounts as a separate break-glass operation.
 
 ## Summary
 
