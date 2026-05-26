@@ -37,6 +37,9 @@ Before running any demo, ensure you have:
   - Create Azure Container Registry
   - Assign role-based access control (RBAC)
 
+  AKS access is configured through Microsoft Entra ID and Azure RBAC. The
+  demos disable local AKS accounts and do not use admin kubeconfigs.
+
 - **Azure CLI** (`az`) version 2.50.0 or later
   ```bash
   az --version

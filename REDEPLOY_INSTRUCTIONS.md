@@ -81,7 +81,7 @@ az deployment group create \
 
 ### 1. Get New Credentials
 
-For each cluster, get credentials with Azure AD auth (not --admin):
+For each cluster, get credentials with Microsoft Entra ID auth and Azure RBAC:
 
 ```bash
 # Demo 01
@@ -110,10 +110,9 @@ kubectl get nodes
 kubectl get pods --all-namespaces
 ```
 
-If you get permission errors, use admin credentials temporarily:
-```bash
-az aks get-credentials --admin ...
-```
+If you get permission errors, verify the Azure role assignments below. These
+demos disable local AKS accounts, so admin kubeconfigs are not available during
+normal deployment.
 
 ### 3. Test Azure Portal Access
 
@@ -156,10 +155,9 @@ az aks get-credentials \
   --overwrite-existing
 ```
 
-Or use admin credentials (bypasses Azure RBAC):
-```bash
-az aks get-credentials --admin ...
-```
+Admin kubeconfigs bypass Azure RBAC and are intentionally unavailable for these
+demos because local AKS accounts are disabled. Treat re-enabling local accounts
+as a separate break-glass operation only, then disable them again immediately.
 
 ## Summary
 
