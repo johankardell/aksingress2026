@@ -90,7 +90,7 @@ param location = 'swedencentral'
 param kubernetesVersion = '1.34.7'
 param vmSize = 'Standard_B4as_v2'
 param nodeCount = 2
-param userObjectId = '<YOUR_OBJECT_ID_HERE>' // <-- Replace with your Object ID
+param userObjectId = '<your-object-id>' // <-- Replace with your Object ID for manual deployments only
 ```
 
 ### 3. Files to Update
@@ -117,7 +117,16 @@ param userObjectId = '<YOUR_OBJECT_ID_HERE>' // <-- Replace with your Object ID
    echo "Your Object ID: $USER_ID"
    ```
 
-2. **Update the Bicep files** as described above (or let me do it for you)
+2. **For manual deployments, pass the Object ID at deployment time:**
+   ```bash
+   az deployment group create \
+     --resource-group <resource-group> \
+     --template-file main.bicep \
+     --parameters main.bicepparam \
+     --parameters userObjectId=<your-object-id>
+   ```
+
+   The provided deployment scripts do this automatically by resolving the signed-in user.
 
 3. **Clean up existing deployments:**
    ```bash

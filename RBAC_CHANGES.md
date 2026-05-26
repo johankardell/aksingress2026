@@ -157,19 +157,16 @@ The deployment scripts automatically get the currently signed-in user's Azure AD
 USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
 ```
 
-This is then passed to the Bicep template as a parameter override, which takes precedence over the default value in `main.bicepparam`.
+This is then passed to the Bicep template as a parameter override so the committed parameter files do not need a personal object ID.
 
 ## Parameter Files
 
-Both parameter files still contain a default user object ID:
+The parameter files contain a non-personal placeholder object ID:
+- `/01-nginx-ingress/infrastructure/main.bicepparam`
 - `/02-envoy-gateway-api/infrastructure/main.bicepparam`
 - `/03-appgw-for-containers/infrastructure/main.bicepparam`
 
-```bicep
-param userObjectId = '8a264367-2c98-4953-b851-549a347c2b31'
-```
-
-However, the deployment scripts override this with the current user's ID, ensuring the correct user gets RBAC permissions regardless of who runs the script.
+Deployment scripts override this with the current user's ID automatically. Manual deployments using `az deployment group create` must provide their own ID, for example `--parameters userObjectId=<your-object-id>`.
 
 ## Validation
 
