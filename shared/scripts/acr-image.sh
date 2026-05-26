@@ -8,7 +8,7 @@ compute_sample_app_image_tag() {
     ! -path './bin/*' \
     ! -path './obj/*' \
     ! -name '*.md' \
-    -print | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$file"; done | sha256sum | awk '{print substr($1, 1, 12)}')
+    -print | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$file"; done | sha256sum | awk '{print $1}')
 
   echo "sha-${source_hash}"
 }
