@@ -167,12 +167,11 @@ echo -e "  AKS Cluster: ${AKS_NAME}"
 echo -e "  ACR: ${ACR_NAME}"
 echo
 
-# Get AKS credentials (using admin credentials for deployment)
+# Get AKS credentials using Entra ID and Azure RBAC
 echo -e "${YELLOW}[5/9] Getting AKS credentials...${NC}"
 az aks get-credentials \
   --resource-group $RESOURCE_GROUP \
   --name $AKS_NAME \
-  --admin \
   --overwrite-existing \
   --output table
 
@@ -181,7 +180,7 @@ if [ -f ~/.kube/config ]; then
   chmod 600 ~/.kube/config
 fi
 
-echo -e "${GREEN}✓ Admin credentials configured${NC}"
+echo -e "${GREEN}✓ AKS credentials configured${NC}"
 echo
 
 # Build and push container image using Azure Container Registry Tasks

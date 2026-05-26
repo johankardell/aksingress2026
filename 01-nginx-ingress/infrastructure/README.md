@@ -4,7 +4,7 @@ This folder contains Bicep infrastructure-as-code templates for deploying the AK
 
 ## Resources Deployed
 
-- **AKS Cluster**: Standard configuration with Azure CNI networking
+- **AKS Cluster**: Standard configuration with Azure CNI networking, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
 - **Azure Container Registry**: For storing the demo application container image
 - **Log Analytics Workspace**: For monitoring and diagnostics
 - **Managed Identity**: System-assigned identity for AKS

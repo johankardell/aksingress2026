@@ -64,17 +64,19 @@ oidcIssuerProfile: {
 }
 ```
 
-#### 5. **Azure AD Integration**
-- **Purpose**: Managed Azure AD authentication
-- **Configuration**: Kubernetes RBAC enabled
+#### 5. **Microsoft Entra ID Integration**
+- **Purpose**: Managed Microsoft Entra ID authentication
+- **Configuration**: Azure RBAC enabled and local AKS accounts disabled
 - **Benefits**: 
   - No separate AAD app registration needed
   - Integrated with Azure Portal RBAC
+  - Avoids admin kubeconfigs that bypass Entra ID and Azure RBAC
 
 ```bicep
+disableLocalAccounts: true
 aadProfile: {
   managed: true
-  enableAzureRBAC: false  # Using K8s RBAC, not Azure RBAC
+  enableAzureRBAC: true
 }
 ```
 

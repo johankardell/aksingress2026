@@ -204,7 +204,6 @@ echo -e "${YELLOW}[7/11] Getting AKS credentials...${NC}"
 az aks get-credentials \
   --resource-group $RESOURCE_GROUP \
   --name $AKS_NAME \
-  --admin \
   --overwrite-existing \
   --output table
 
@@ -213,7 +212,7 @@ if [ -f ~/.kube/config ]; then
   chmod 600 ~/.kube/config
 fi
 
-echo -e "${GREEN}✓ Admin credentials configured${NC}"
+echo -e "${GREEN}✓ AKS credentials configured${NC}"
 echo
 
 # Configure Application Gateway for Containers
