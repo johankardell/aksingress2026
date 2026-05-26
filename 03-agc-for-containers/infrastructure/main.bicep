@@ -3,7 +3,7 @@
 param location string = resourceGroup().location
 
 @description('Base name for all resources')
-param baseName string = 'appgw-demo'
+param baseName string = 'agc-demo'
 
 @description('Environment name (dev, test, prod)')
 param environment string = 'demo'
@@ -25,7 +25,7 @@ param userObjectId string
 @description('Tags for all resources')
 param tags object = {
   Environment: environment
-  Demo: 'AppGW-for-Containers'
+  Demo: 'AGC-for-Containers'
   ManagedBy: 'Bicep'
 }
 
@@ -55,7 +55,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
         }
       }
       {
-        name: 'appgw-subnet'
+        name: 'agc-subnet'
         properties: {
           addressPrefix: '10.4.4.0/24'
           delegations: [
@@ -106,7 +106,7 @@ resource agcIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-3
   tags: tags
 }
 
-// AKS Cluster with Application Gateway for Containers enabled
+// AKS Cluster prepared for Application Gateway for Containers
 resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
   name: aksClusterName
   location: location
@@ -213,13 +213,6 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
       enabled: true
     }
     
-    // Enable Application Gateway for Containers
-    ingressProfile: {
-      webAppRouting: {
-        enabled: true
-      }
-    }
-    
     autoUpgradeProfile: {
       upgradeChannel: 'stable'
     }
@@ -233,17 +226,6 @@ resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull
     principalId: aks.properties.identityProfile.kubeletidentity.objectId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Role assignment: AGC Identity - Network Contributor on VNet
-resource agcNetworkContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(vnet.id, agcIdentity.id, 'NetworkContributor')
-  scope: vnet
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4d97b98b-1d4f-4787-a291-c67834d212e7') // Network Contributor
-    principalId: agcIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -280,7 +262,9 @@ output acrLoginServer string = acr.properties.loginServer
 output vnetName string = vnet.name
 output vnetId string = vnet.id
 output aksSubnetId string = vnet.properties.subnets[0].id
-output appgwSubnetId string = vnet.properties.subnets[1].id
+output agcSubnetId string = vnet.properties.subnets[1].id
+output agcIdentityName string = agcIdentity.name
+output agcIdentityId string = agcIdentity.id
 output agcIdentityClientId string = agcIdentity.properties.clientId
 output agcIdentityPrincipalId string = agcIdentity.properties.principalId
 output resourceGroupName string = resourceGroup().name

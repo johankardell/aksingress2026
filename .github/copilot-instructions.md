@@ -6,7 +6,7 @@ This repository contains three independent AKS ingress/gateway demos:
 
 1. **Demo 01**: NGINX Ingress Controller - traditional Kubernetes Ingress pattern for comparison and migration education.
 2. **Demo 02**: Gateway API with Envoy - modern, vendor-neutral Gateway API implementation.
-3. **Demo 03**: Application Gateway for Containers - Azure-native Gateway API implementation.
+3. **Demo 03**: AGC - Azure-native Gateway API implementation.
 
 Each demo is self-contained with its own Bicep infrastructure, Kubernetes manifests, Bash automation, cleanup script, and documentation. All demos share the sample application in `shared/sample-app/`.
 
@@ -25,7 +25,7 @@ Each demo is self-contained with its own Bicep infrastructure, Kubernetes manife
 - **Resource groups**:
   - Demo 01: `rg-01-nginx-ingress-demo`
   - Demo 02: `rg-02-envoy-gateway-demo`
-  - Demo 03: `rg-03-appgw-containers-demo`
+  - Demo 03: `rg-03-agc-containers-demo`
 - **AKS-managed infrastructure resource group**: use the demo resource group name with `-infra` suffix, e.g. `rg-02-envoy-gateway-demo-infra`.
 
 ## Repository Structure
@@ -46,7 +46,7 @@ aksingress2026/
 │   ├── infrastructure/
 │   ├── kubernetes/
 │   └── scripts/
-└── 03-appgw-for-containers/
+└── 03-agc-for-containers/
     ├── infrastructure/
     ├── kubernetes/
     └── scripts/
@@ -73,7 +73,8 @@ aksingress2026/
 - AKS clusters use Azure RBAC role assignments and ACR Pull for the kubelet identity.
 - Scripts are intended to be idempotent. If `RoleAssignmentExists` occurs, deploy scripts should clean only the known conflicting role assignments for that demo and retry once.
 - Demo scripts currently use AKS admin credentials for deployment. Do not expand admin-credential usage beyond the existing pattern unless explicitly requested.
-- Demo 03 uses the AKS Web App Routing / ALB Controller integration and must create the `ApplicationLoadBalancer` resource before applying Gateway resources.
+- Demo 03 uses AGC with the ALB Controller installed by Helm. Do not use AKS Web App Routing or `az aks approuting` for Demo 03.
+- Demo 03 must create the `ApplicationLoadBalancer` resource before applying Gateway resources.
 
 ## Container Build Workflow
 
@@ -130,7 +131,8 @@ aksingress2026/
 
 ### Demo 03: Application Gateway for Containers
 
-- Use AKS Web App Routing / ALB Controller.
+- Use the Application Gateway for Containers ALB Controller Helm chart (`oci://mcr.microsoft.com/application-lb/charts/alb-controller`).
+- Do not use AKS Web App Routing for this demo.
 - Ensure `ApplicationLoadBalancer` is created before Gateway and HTTPRoute resources.
 - Highlight Azure-native integration, WAF-readiness, and Azure Monitor integration.
 
@@ -155,11 +157,11 @@ Before finishing changes:
   ```bash
   az bicep build --file 01-nginx-ingress/infrastructure/main.bicep
   az bicep build --file 02-envoy-gateway-api/infrastructure/main.bicep
-  az bicep build --file 03-appgw-for-containers/infrastructure/main.bicep
+  az bicep build --file 03-agc-for-containers/infrastructure/main.bicep
   ```
 - Run shell syntax checks for changed scripts:
   ```bash
-  bash -n 01-nginx-ingress/scripts/deploy.sh 02-envoy-gateway-api/scripts/deploy.sh 03-appgw-for-containers/scripts/deploy.sh
+  bash -n 01-nginx-ingress/scripts/deploy.sh 02-envoy-gateway-api/scripts/deploy.sh 03-agc-for-containers/scripts/deploy.sh
   ```
 - For sample app changes, run:
   ```bash

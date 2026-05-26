@@ -9,12 +9,12 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}================================================${NC}"
-echo -e "${GREEN}  Application Gateway for Containers - Image Build${NC}"
+echo -e "${GREEN}  AGC - Image Build${NC}"
 echo -e "${GREEN}================================================${NC}"
 echo
 
-RESOURCE_GROUP="rg-03-appgw-containers-demo"
-DEPLOYMENT_NAME="appgw-demo-deployment"
+RESOURCE_GROUP="rg-03-agc-containers-demo"
+DEPLOYMENT_NAME="agc-demo-deployment"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 IMAGE_REPOSITORY="aks-ingress-demo"

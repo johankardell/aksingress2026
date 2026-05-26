@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: appgw-demo-app
+  name: agc-demo-app
   namespace: default
   labels:
-    app: appgw-demo-app
-    demo: appgw-containers
+    app: agc-demo-app
+    demo: agc-containers
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: appgw-demo-app
+      app: agc-demo-app
   template:
     metadata:
       labels:
-        app: appgw-demo-app
-        demo: appgw-containers
+        app: agc-demo-app
+        demo: agc-containers
     spec:
       securityContext:
         runAsNonRoot: true
@@ -36,9 +36,9 @@ spec:
           protocol: TCP
         env:
         - name: DEMO_NAME
-          value: "Application Gateway for Containers Demo"
+          value: "AGC Demo"
         - name: DEMO_TYPE
-          value: "Azure Application Gateway for Containers"
+          value: "Azure AGC"
         - name: APP_VERSION
           value: "1.0.0"
         - name: ASPNETCORE_URLS

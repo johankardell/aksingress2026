@@ -104,8 +104,8 @@ param userObjectId = '<your-object-id>' // <-- Replace with your Object ID for m
 - `02-envoy-gateway-api/infrastructure/main.bicepparam`
 
 **Demo 03 - Application Gateway for Containers:**
-- `03-appgw-for-containers/infrastructure/main.bicep`
-- `03-appgw-for-containers/infrastructure/main.bicepparam`
+- `03-agc-for-containers/infrastructure/main.bicep`
+- `03-agc-for-containers/infrastructure/main.bicepparam`
 
 ## Deployment Instructions
 
@@ -132,14 +132,14 @@ param userObjectId = '<your-object-id>' // <-- Replace with your Object ID for m
    ```bash
    cd 01-nginx-ingress && ./scripts/cleanup.sh
    cd ../02-envoy-gateway-api && ./scripts/cleanup.sh
-   cd ../03-appgw-for-containers && ./scripts/cleanup.sh
+   cd ../03-agc-for-containers && ./scripts/cleanup.sh
    ```
 
 4. **Redeploy with new configuration:**
    ```bash
    cd 01-nginx-ingress && ./scripts/deploy.sh
    cd ../02-envoy-gateway-api && ./scripts/deploy.sh
-   cd ../03-appgw-for-containers && ./scripts/deploy.sh
+   cd ../03-agc-for-containers && ./scripts/deploy.sh
    ```
 
 ### Option 2: Update Existing Clusters

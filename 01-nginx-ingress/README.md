@@ -1,6 +1,6 @@
 # NGINX Ingress Controller Demo
 
-⚠️ **Important**: This demo showcases the traditional NGINX Ingress Controller approach. Kubernetes Ingress is stable and widely used, but Gateway API and Azure Application Gateway for Containers provide a more expressive, role-oriented model for new designs.
+⚠️ **Important**: This demo showcases the traditional NGINX Ingress Controller approach. Kubernetes Ingress is stable and widely used, but Gateway API and Azure AGC provide a more expressive, role-oriented model for new designs.
 
 ## Overview
 
@@ -286,7 +286,7 @@ kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller
 
 ## Comparison with Modern Alternatives
 
-| Feature | NGINX Ingress | Gateway API | App Gateway for Containers |
+| Feature | NGINX Ingress | Gateway API | AGC |
 |---------|--------------|-------------|---------------------------|
 | **Kubernetes Native** | Yes | Yes | Yes |
 | **Azure Native** | No | No | Yes |
@@ -305,7 +305,7 @@ If you're using NGINX Ingress Controller, consider migrating to:
 
 See the other demos in this repository:
 - [Gateway API with Envoy](../02-envoy-gateway-api/)
-- [Application Gateway for Containers](../03-appgw-for-containers/)
+- [Application Gateway for Containers](../03-agc-for-containers/)
 
 ## Clean Up
 
@@ -355,7 +355,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 
 1. ✅ Deploy this demo to understand NGINX Ingress
 2. 🔄 Compare with [Gateway API demo](../02-envoy-gateway-api/)
-3. 🚀 Explore [Azure Application Gateway for Containers](../03-appgw-for-containers/)
+3. 🚀 Explore [Azure AGC](../03-agc-for-containers/)
 4. 📚 Plan your migration strategy
 
 ---

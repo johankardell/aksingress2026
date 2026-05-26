@@ -10,13 +10,13 @@ This repository contains three independent demonstrations showcasing different i
 
 1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional Ingress-based approach
 2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard
-3. **[Application Gateway for Containers](./03-appgw-for-containers/)** - Azure-native ingress solution
+3. **[Application Gateway for Containers](./03-agc-for-containers/)** - Azure-native ingress solution
 
 Each demo deploys a simple .NET 10 web application to its own AKS cluster, accessible via a public IP address.
 
 ## Demo Comparison
 
-| Feature | NGINX Ingress | Gateway API (Envoy) | App Gateway for Containers |
+| Feature | NGINX Ingress | Gateway API (Envoy) | AGC |
 |---------|---------------|---------------------|---------------------------|
 | **Status** | ⚠️ Legacy / Traditional | ✅ Modern Standard | ✅ Azure-Native |
 | **Specification** | Ingress v1 | Gateway API v1 | Gateway API + Azure Extensions |
@@ -80,7 +80,7 @@ All demos are configured and tested for **Sweden Central** region:
 **Resource Group Names**:
 - Demo 01: `rg-01-nginx-ingress-demo`
 - Demo 02: `rg-02-envoy-gateway-demo`
-- Demo 03: `rg-03-appgw-containers-demo`
+- Demo 03: `rg-03-agc-containers-demo`
 
 ## Quick Start
 
@@ -104,12 +104,12 @@ cd 02-envoy-gateway-api
 ```
 [📖 Full Documentation](./02-envoy-gateway-api/README.md)
 
-### 3. Application Gateway for Containers Demo
+### 3. AGC Demo
 ```bash
-cd 03-appgw-for-containers
+cd 03-agc-for-containers
 ./scripts/deploy.sh
 ```
-[📖 Full Documentation](./03-appgw-for-containers/README.md)
+[📖 Full Documentation](./03-agc-for-containers/README.md)
 
 ## Repository Structure
 
@@ -135,7 +135,7 @@ aksingress2026/
 │   ├── infrastructure/
 │   ├── kubernetes/
 │   └── scripts/
-└── 03-appgw-for-containers/           # App Gateway for Containers demo
+└── 03-agc-for-containers/           # AGC demo
     ├── README.md
     ├── infrastructure/
     ├── kubernetes/
@@ -198,7 +198,7 @@ The application displays which demo and ingress type is running, making it easy 
 
 1. Start with **NGINX Ingress** to understand the traditional approach
 2. Move to **Gateway API** to see the modern Kubernetes standard
-3. Finish with **App Gateway for Containers** to see Azure's optimized solution
+3. Finish with **AGC** to see Azure's optimized solution
 
 ## Contributing
 

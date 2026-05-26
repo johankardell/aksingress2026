@@ -4,7 +4,7 @@ This repository includes professional draw.io architecture diagrams for each dem
 
 - **Demo 01:** `01-nginx-ingress/architecture.drawio`
 - **Demo 02:** `02-envoy-gateway-api/architecture.drawio`
-- **Demo 03:** `03-appgw-for-containers/architecture.drawio`
+- **Demo 03:** `03-agc-for-containers/architecture.drawio`
 
 ## How to View and Edit
 
@@ -92,13 +92,13 @@ Envoy Controller → Envoy Proxy (configuration)
 
 ### Demo 03: Application Gateway for Containers (Azure-Native)
 
-**File:** `03-appgw-for-containers/architecture.drawio`
+**File:** `03-agc-for-containers/architecture.drawio`
 
 **Components:**
 - Internet → Application Gateway for Containers (Azure-native)
 - Virtual Network (10.4.0.0/16)
   - AKS Subnet (10.4.0.0/22)
-  - AppGW Subnet (10.4.4.0/24, delegated)
+  - AGC Subnet (10.4.4.0/24, delegated)
 - AKS Cluster with App Routing Add-on
   - kube-system namespace
     - ALB Controller Pod
@@ -122,7 +122,7 @@ Envoy Controller → Envoy Proxy (configuration)
 
 **Traffic Flow:**
 ```
-Internet → AppGW for Containers → Service → Pods
+Internet → AGC for Containers → Service → Pods
 ```
 
 **Control Flow:**
@@ -160,11 +160,11 @@ The diagrams use consistent color coding across all three demos:
 
 ## Comparison at a Glance
 
-| Aspect | Demo 01 (NGINX) | Demo 02 (Envoy) | Demo 03 (AppGW) |
+| Aspect | Demo 01 (NGINX) | Demo 02 (Envoy) | Demo 03 (AGC) |
 |--------|----------------|-----------------|-----------------|
 | **API** | Ingress v1 | Gateway API v1 | Gateway API v1 |
 | **Controller** | NGINX Ingress | Envoy Gateway | ALB Controller |
-| **Data Plane** | NGINX Pods | Envoy Proxy Pods | Azure AppGW |
+| **Data Plane** | NGINX Pods | Envoy Proxy Pods | Azure AGC |
 | **Networking** | Azure CNI | Azure CNI | Azure CNI + VNet |
 | **Azure Integration** | Basic | Basic | Native (Managed) |
 | **Subnet Delegation** | No | No | Yes (required) |

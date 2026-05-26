@@ -1,22 +1,22 @@
-# Application Gateway for Containers Demo - Infrastructure
+# AGC Demo - Infrastructure
 
 This folder contains Bicep infrastructure-as-code templates for deploying AKS with Application Gateway for Containers and supporting Azure resources.
 
 ## Resources Deployed
 
 - **Virtual Network**: With dedicated subnets for AKS and Application Gateway for Containers
-- **AKS Cluster**: With Application Gateway for Containers (Web App Routing), Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
+- **AKS Cluster**: Prepared for AGC with Workload Identity, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
 - **Azure Container Registry**: For storing container images
 - **Log Analytics Workspace**: For monitoring and diagnostics
 - **Managed Identities**: System-assigned for AKS, user-assigned for Application Gateway for Containers
-- **RBAC Role Assignments**: ACR Pull, Network Contributor
+- **RBAC Role Assignments**: ACR Pull and user AKS access; AGC identity roles are assigned by `scripts/deploy-infra.sh` after the AKS infrastructure resource group exists
 
 ## Key Features
 
 This infrastructure showcases Azure-native ingress capabilities:
 
 - **Application Gateway for Containers**: Azure-managed application delivery controller
-- **Web App Routing**: AKS add-on for simplified ingress configuration
+- **ALB Controller**: Installed with the Application Gateway for Containers Helm chart
 - **Virtual Network Integration**: Dedicated subnet delegation for Application Gateway
 - **Workload Identity**: Modern authentication for Azure services
 - **Microsoft Entra ID + Azure RBAC**: User access without admin kubeconfigs
@@ -34,10 +34,10 @@ This infrastructure showcases Azure-native ingress capabilities:
 │  │   │ AKS Subnet (10.4.0.0/22)         │   │  │
 │  │   │ - AKS Cluster (2 nodes)          │   │  │
 │  │   │ - Workload Identity Enabled      │   │  │
-│  │   │ - Web App Routing Enabled        │   │  │
+│  │   │ - Workload Identity Enabled      │   │  │
 │  │   └──────────────────────────────────┘   │  │
 │  │   ┌──────────────────────────────────┐   │  │
-│  │   │ AppGW Subnet (10.4.4.0/24)       │   │  │
+│  │   │ AGC Subnet (10.4.4.0/24)       │   │  │
 │  │   │ - Delegated to                   │   │  │
 │  │   │   ServiceNetworking/             │   │  │
 │  │   │   trafficControllers             │   │  │
@@ -60,7 +60,7 @@ This infrastructure showcases Azure-native ingress capabilities:
 Key parameters in `main.bicepparam`:
 
 - `location`: Azure region (default: swedencentral)
-- `baseName`: Base name for resources (default: appgw-demo)
+- `baseName`: Base name for resources (default: agc-demo)
 - `kubernetesVersion`: AKS version (default: 1.35.4)
 - `systemNodeSize`: VM size (default: Standard_B4as_v2)
 - `systemNodeCount`: Number of nodes (default: 2)
@@ -81,12 +81,12 @@ Application Gateway for Containers (AGC) is Azure's modern, cloud-native applica
 
 ```bash
 # Create resource group
-az group create --name rg-03-appgw-containers-demo --location swedencentral
+az group create --name rg-03-agc-containers-demo --location swedencentral
 
 # Deploy Bicep template
 az deployment group create \
-  --resource-group rg-03-appgw-containers-demo \
-  --name appgw-demo-deployment \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
   --template-file main.bicep \
   --parameters main.bicepparam
 ```
@@ -95,8 +95,8 @@ az deployment group create \
 
 ```bash
 az deployment group show \
-  --resource-group rg-03-appgw-containers-demo \
-  --name appgw-demo-deployment \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
   --query properties.outputs
 ```
 
@@ -111,14 +111,15 @@ The deployment provides these outputs:
 - `acrLoginServer`: Login server URL for ACR
 - `vnetName`: Virtual network name
 - `aksSubnetId`: AKS subnet resource ID
-- `appgwSubnetId`: Application Gateway subnet resource ID
+- `agcSubnetId`: Application Gateway subnet resource ID
+- `agcIdentityName`: Name of the AGC managed identity
 - `agcIdentityClientId`: Client ID of the AGC managed identity
 - `resourceGroupName`: Resource group name
 - `nodeResourceGroupName`: AKS-managed infrastructure resource group name (`<resource-group>-infra`)
 
 ## Subnet Delegation
 
-The Application Gateway for Containers subnet is delegated to `Microsoft.ServiceNetworking/trafficControllers`, which:
+The AGC subnet is delegated to `Microsoft.ServiceNetworking/trafficControllers`, which:
 - Allows Azure to manage the subnet for Application Gateway resources
 - Enables automatic provisioning of Application Gateway for Containers instances
 - Provides network isolation for the gateway components
@@ -141,14 +142,14 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 
 ```bash
 # Delete the resource group (removes all resources)
-az group delete --name rg-03-appgw-containers-demo --yes --no-wait
+az group delete --name rg-03-agc-containers-demo --yes --no-wait
 ```
 
 ## Next Steps
 
 After infrastructure deployment:
 1. Get AKS credentials: `az aks get-credentials`
-2. Install Application Gateway for Containers resources
+2. Install the ALB Controller with Helm
 3. Build and push the container image to ACR
-4. Deploy Gateway API resources
-5. Deploy the application with AGC annotations
+4. Create the `ApplicationLoadBalancer` resource
+5. Deploy Gateway API resources and the application with AGC annotations

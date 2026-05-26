@@ -7,11 +7,14 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${YELLOW}========================================================${NC}"
-echo -e "${YELLOW}  Application Gateway for Containers - Cleanup Script${NC}"
+echo -e "${YELLOW}  AGC - Cleanup Script${NC}"
 echo -e "${YELLOW}========================================================${NC}"
 echo
 
-RESOURCE_GROUP="rg-03-appgw-containers-demo"
+RESOURCE_GROUP="rg-03-agc-containers-demo"
+ALB_CONTROLLER_NAMESPACE="azure-alb-system"
+ALB_RESOURCE_NAMESPACE="alb-infra"
+ALB_RESOURCE_NAME="alb"
 
 # Confirm deletion
 echo -e "${RED}WARNING: This will delete the following:${NC}"
@@ -33,13 +36,20 @@ fi
 
 echo -e "${YELLOW}[1/2] Deleting Kubernetes resources...${NC}"
 # Delete Gateway API resources
-kubectl delete httproute appgw-demo-route --ignore-not-found=true
-kubectl delete gateway appgw-demo-gateway --ignore-not-found=true
-kubectl delete deployment appgw-demo-app --ignore-not-found=true
-kubectl delete service appgw-demo-service --ignore-not-found=true
+kubectl delete httproute agc-demo-route --ignore-not-found=true
+kubectl delete gateway agc-demo-gateway --ignore-not-found=true
+kubectl delete deployment agc-demo-app --ignore-not-found=true
+kubectl delete service agc-demo-service --ignore-not-found=true
 
-# Delete ApplicationLoadBalancer
-kubectl delete applicationloadbalancer -n kube-system alb-controller --ignore-not-found=true
+# Delete ApplicationLoadBalancer before removing the controller so finalizers can clean up AGC resources
+kubectl delete applicationloadbalancer -n $ALB_RESOURCE_NAMESPACE $ALB_RESOURCE_NAME --ignore-not-found=true --wait=false
+if command -v helm >/dev/null 2>&1; then
+  helm uninstall alb-controller -n $ALB_CONTROLLER_NAMESPACE 2>/dev/null || echo "ALB Controller Helm release not found"
+else
+  echo "Helm not found, skipping ALB Controller uninstall"
+fi
+kubectl delete namespace $ALB_CONTROLLER_NAMESPACE --ignore-not-found=true
+kubectl delete namespace $ALB_RESOURCE_NAMESPACE --ignore-not-found=true
 
 echo -e "${GREEN}✓ Kubernetes resources deleted${NC}"
 echo
@@ -58,4 +68,4 @@ echo "Note: Azure resource deletion is running in the background."
 echo "To check status: az group show --name $RESOURCE_GROUP"
 echo
 echo "The resource group will be fully deleted in 5-10 minutes."
-echo "Application Gateway for Containers resources may take additional time to clean up."
+echo "AGC resources may take additional time to clean up."

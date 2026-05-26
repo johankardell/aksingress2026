@@ -1,4 +1,4 @@
-# Application Gateway for Containers Demo
+# AGC Demo
 
 ✅ **Azure-native, enterprise-ready application delivery solution**
 
@@ -48,7 +48,7 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 │  │  │  AKS Cluster (Subnet: 10.4.0.0/22)                             │  │ │
 │  │  │                                                                 │  │ │
 │  │  │  ┌──────────────────────────────────────────────────────────┐  │  │ │
-│  │  │  │  Namespace: kube-system                                   │  │  │ │
+│  │  │  │  Namespace: azure-alb-system                              │  │  │ │
 │  │  │  │                                                            │  │  │ │
 │  │  │  │  ┌────────────────────────────────────────────────────┐   │  │  │ │
 │  │  │  │  │  ALB Controller (Deployment)                       │   │  │  │ │
@@ -68,7 +68,7 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 │  │  │  │  Namespace: default                                       │  │  │ │
 │  │  │  │                                                            │  │  │ │
 │  │  │  │  ┌────────────────────────────────────────────────────┐   │  │  │ │
-│  │  │  │  │  Gateway: appgw-demo-gateway                       │   │  │  │ │
+│  │  │  │  │  Gateway: agc-demo-gateway                       │   │  │  │ │
 │  │  │  │  │  - GatewayClassName: azure-alb-external            │   │  │  │ │
 │  │  │  │  │  - Listener: HTTP on port 80                       │   │  │  │ │
 │  │  │  │  │  - Configures AGC frontend listener                │   │  │  │ │
@@ -77,26 +77,26 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 │  │  │  │                       │ Referenced by                      │  │  │ │
 │  │  │  │                       ▼                                    │  │  │ │
 │  │  │  │  ┌────────────────────────────────────────────────────┐   │  │  │ │
-│  │  │  │  │  HTTPRoute: appgw-demo-route                       │   │  │  │ │
-│  │  │  │  │  - ParentRef: appgw-demo-gateway                   │   │  │  │ │
+│  │  │  │  │  HTTPRoute: agc-demo-route                       │   │  │  │ │
+│  │  │  │  │  - ParentRef: agc-demo-gateway                   │   │  │  │ │
 │  │  │  │  │  - Match: Path "/"                                 │   │  │  │ │
-│  │  │  │  │  - BackendRef: appgw-demo-service                  │   │  │  │ │
+│  │  │  │  │  - BackendRef: agc-demo-service                  │   │  │  │ │
 │  │  │  │  │  - Configures AGC routing rules                    │   │  │  │ │
 │  │  │  │  └────────────────────┬───────────────────────────────┘   │  │  │ │
 │  │  │  │                       │                                    │  │  │ │
 │  │  │  │                       │ Routes to                          │  │  │ │
 │  │  │  │                       ▼                                    │  │  │ │
 │  │  │  │  ┌────────────────────────────────────────────────────┐   │  │  │ │
-│  │  │  │  │  Service: appgw-demo-service                       │   │  │  │ │
+│  │  │  │  │  Service: agc-demo-service                       │   │  │  │ │
 │  │  │  │  │  - Type: ClusterIP                                 │   │  │  │ │
 │  │  │  │  │  - Port: 80 → TargetPort: 8080                     │   │  │  │ │
-│  │  │  │  │  - Selector: app=appgw-demo-app                    │   │  │  │ │
+│  │  │  │  │  - Selector: app=agc-demo-app                    │   │  │  │ │
 │  │  │  │  └────────────────────┬───────────────────────────────┘   │  │  │ │
 │  │  │  │                       │                                    │  │  │ │
 │  │  │  │                       │ Load balances to                   │  │  │ │
 │  │  │  │                       ▼                                    │  │  │ │
 │  │  │  │  ┌─────────────────────────────────────────────────┐      │  │  │ │
-│  │  │  │  │  Deployment: appgw-demo-app                     │      │  │  │ │
+│  │  │  │  │  Deployment: agc-demo-app                     │      │  │  │ │
 │  │  │  │  │  - Replicas: 2                                  │      │  │  │ │
 │  │  │  │  │                                                  │      │  │  │ │
 │  │  │  │  │  ┌─────────────────┐    ┌─────────────────┐    │      │  │  │ │
@@ -118,7 +118,7 @@ Traffic Path Summary:
   1. User → Application Gateway for Containers (Public IP)
   2. AGC → Reads Gateway + HTTPRoute from AKS via ALB Controller
   3. AGC → Routes to AKS cluster via private VNet connectivity
-  4. HTTPRoute → Defines routing to appgw-demo-service
+  4. HTTPRoute → Defines routing to agc-demo-service
   5. Service → Load balances to Pod (Port 8080)
   6. Pod → .NET Application responds
 
@@ -152,17 +152,18 @@ Key Azure-Specific Features:
 │  │   │  AKS Subnet (10.4.0.0/22)                             │ ││
 │  │   │                                                        │ ││
 │  │   │  ┌──────────────────────────────────────────────────┐│ ││
-│  │   │  │  kube-system Namespace (Platform)                ││ ││
-│  │   │  │  - ALB Controller                                 ││ ││
+│  │   │  │  azure-alb-system Namespace (Platform)          ││ ││
+│  │   │  │  - ALB Controller                               ││ ││
+│  │   │  │  alb-infra Namespace                            ││ ││
 │  │   │  │  - ApplicationLoadBalancer Resource              ││ ││
 │  │   │  └──────────────────────────────────────────────────┘│ ││
 │  │   │                                                        │ ││
 │  │   │  ┌──────────────────────────────────────────────────┐│ ││
 │  │   │  │  default Namespace (Application)                 ││ ││
-│  │   │  │  - Gateway: appgw-demo-gateway                   ││ ││
-│  │   │  │  - HTTPRoute: appgw-demo-route                   ││ ││
-│  │   │  │  - Service: appgw-demo-service                   ││ ││
-│  │   │  │  - Deployment: appgw-demo-app (2 replicas)       ││ ││
+│  │   │  │  - Gateway: agc-demo-gateway                   ││ ││
+│  │   │  │  - HTTPRoute: agc-demo-route                   ││ ││
+│  │   │  │  - Service: agc-demo-service                   ││ ││
+│  │   │  │  - Deployment: agc-demo-app (2 replicas)       ││ ││
 │  │   │  └──────────────────────────────────────────────────┘│ ││
 │  │   └───────────────────────────────────────────────────────┘ ││
 │  └──────────────────────────────────────────────────────────────┘│
@@ -186,8 +187,8 @@ AGC is a modern application delivery controller optimized for:
 
 ### Components
 
-#### 1. ALB Controller (kube-system)
-- Kubernetes controller installed by AKS
+#### 1. ALB Controller (`azure-alb-system`)
+- Kubernetes controller installed with the Application Gateway for Containers Helm chart
 - Watches for Gateway and HTTPRoute resources
 - Configures Application Gateway for Containers
 - Manages lifecycle of AGC instances
@@ -197,11 +198,11 @@ AGC is a modern application delivery controller optimized for:
 apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
 metadata:
-  name: alb-controller
-  namespace: kube-system
+  name: alb
+  namespace: alb-infra
 spec:
   associations:
-  - <appgw-subnet-id>
+  - <agc-subnet-id>
 ```
 - Represents the AGC instance
 - Associates with delegated subnet
@@ -213,8 +214,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   annotations:
-    alb.networking.azure.io/alb-name: alb-controller
-    alb.networking.azure.io/alb-namespace: kube-system
+    alb.networking.azure.io/alb-name: alb
+    alb.networking.azure.io/alb-namespace: alb-infra
 spec:
   gatewayClassName: azure-alb-external
   listeners:
@@ -232,12 +233,12 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 spec:
   parentRefs:
-  - name: appgw-demo-gateway
+  - name: agc-demo-gateway
   rules:
   - matches:
     - path: /
     backendRefs:
-    - name: appgw-demo-service
+    - name: agc-demo-service
 ```
 - Defines routing rules
 - Maps requests to Kubernetes services
@@ -247,6 +248,7 @@ spec:
 
 - Azure CLI (`az`) version 2.50.0+
 - kubectl version 1.27+
+- Helm version 3.12+
 - No local Docker installation required; images are built remotely with Azure Container Registry Tasks
 - Active Azure subscription with permissions to:
   - Create resource groups
@@ -284,7 +286,10 @@ You can also run the phases independently:
 #### Step 1: Register Provider
 
 ```bash
-# Register Microsoft.ServiceNetworking provider
+# Register AGC providers
+az provider register --namespace Microsoft.ContainerService
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.NetworkFunction
 az provider register --namespace Microsoft.ServiceNetworking
 
 # Wait for registration to complete
@@ -296,31 +301,39 @@ az provider show --namespace Microsoft.ServiceNetworking --query "registrationSt
 ```bash
 # Create resource group
 az group create \
-  --name rg-03-appgw-containers-demo \
+  --name rg-03-agc-containers-demo \
   --location swedencentral
 
 # Deploy Bicep template
 cd infrastructure
 az deployment group create \
-  --resource-group rg-03-appgw-containers-demo \
-  --name appgw-demo-deployment \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
   --template-file main.bicep \
   --parameters main.bicepparam
 ```
+
+The automated `scripts/deploy-infra.sh` also assigns the AGC managed identity these required permissions:
+
+- Reader on the AKS resource group
+- AppGw for Containers Configuration Manager on the AKS-managed infrastructure resource group
+- Network Contributor on the delegated AGC subnet
+
+If deploying manually, mirror those role assignments before installing the ALB Controller.
 
 #### Step 3: Get Credentials
 
 ```bash
 # Get AKS cluster name
 AKS_NAME=$(az deployment group show \
-  --resource-group rg-03-appgw-containers-demo \
-  --name appgw-demo-deployment \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
   --query properties.outputs.aksClusterName.value \
   --output tsv)
 
 # Get credentials
 az aks get-credentials \
-  --resource-group rg-03-appgw-containers-demo \
+  --resource-group rg-03-agc-containers-demo \
   --name $AKS_NAME \
   --overwrite-existing
 ```
@@ -330,8 +343,8 @@ az aks get-credentials \
 ```bash
 # Get ACR name
 ACR_NAME=$(az deployment group show \
-  --resource-group rg-03-appgw-containers-demo \
-  --name appgw-demo-deployment \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
   --query properties.outputs.acrName.value \
   --output tsv)
 
@@ -340,49 +353,79 @@ source ../shared/scripts/acr-image.sh
 ensure_sample_app_image "$ACR_NAME" "../shared/sample-app" "aks-ingress-demo"
 ```
 
-#### Step 5: Enable Application Gateway for Containers
+#### Step 5: Install ALB Controller
 
 ```bash
-# Enable ALB Controller (Web App Routing)
-az aks approuting enable \
-  --resource-group rg-03-appgw-containers-demo \
-  --name $AKS_NAME
+# Read AGC identity outputs
+AGC_IDENTITY_NAME=$(az deployment group show \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
+  --query properties.outputs.agcIdentityName.value \
+  --output tsv)
 
-# Wait for controller to be ready
-kubectl wait --for=condition=available --timeout=300s \
-  deployment/alb-controller -n kube-system
+AGC_IDENTITY_CLIENT_ID=$(az deployment group show \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
+  --query properties.outputs.agcIdentityClientId.value \
+  --output tsv)
+
+OIDC_ISSUER_URL=$(az deployment group show \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
+  --query properties.outputs.oidcIssuerUrl.value \
+  --output tsv)
+
+# Federate the AGC identity with the ALB Controller service account
+az identity federated-credential create \
+  --resource-group rg-03-agc-containers-demo \
+  --identity-name $AGC_IDENTITY_NAME \
+  --name alb-controller \
+  --issuer $OIDC_ISSUER_URL \
+  --subject system:serviceaccount:azure-alb-system:alb-controller-sa
+
+# Install ALB Controller with Helm
+helm upgrade --install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-controller \
+  --namespace azure-alb-system \
+  --create-namespace \
+  --version 1.10.28 \
+  --set albController.namespace=azure-alb-system \
+  --set albController.podIdentity.clientID=$AGC_IDENTITY_CLIENT_ID \
+  --wait \
+  --timeout 10m
 ```
 
 #### Step 6: Create ApplicationLoadBalancer
 
 ```bash
 # Get subnet ID
-APPGW_SUBNET_ID=$(az deployment group show \
-  --resource-group rg-03-appgw-containers-demo \
-  --name appgw-demo-deployment \
-  --query properties.outputs.appgwSubnetId.value \
+AGC_SUBNET_ID=$(az deployment group show \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
+  --query properties.outputs.agcSubnetId.value \
   --output tsv)
 
 # Create ApplicationLoadBalancer resource
+kubectl create namespace alb-infra --dry-run=client -o yaml | kubectl apply -f -
+
 cat <<EOF | kubectl apply -f -
 apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
 metadata:
-  name: alb-controller
-  namespace: kube-system
+  name: alb
+  namespace: alb-infra
 spec:
   associations:
-  - $APPGW_SUBNET_ID
+  - $AGC_SUBNET_ID
 EOF
 
 # Wait for provisioning
-kubectl get applicationloadbalancer -n kube-system alb-controller --watch
+kubectl get applicationloadbalancer -n alb-infra alb --watch
 ```
 
 #### Step 7: Deploy Application
 
 ```bash
-cd ../03-appgw-for-containers/kubernetes
+cd ../03-agc-for-containers/kubernetes
 
 # Get ACR login server
 ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
@@ -398,10 +441,10 @@ kubectl apply -f httproute.yaml
 
 ```bash
 # Wait for Gateway to get IP (may take 2-3 minutes)
-kubectl get gateway appgw-demo-gateway --watch
+kubectl get gateway agc-demo-gateway --watch
 
 # Once IP is assigned
-EXTERNAL_IP=$(kubectl get gateway appgw-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}')
 echo "Application URL: http://$EXTERNAL_IP"
 ```
 
@@ -411,7 +454,7 @@ echo "Application URL: http://$EXTERNAL_IP"
 
 ```bash
 # Get the external IP
-EXTERNAL_IP=$(kubectl get gateway appgw-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}')
 
 # Main page
 curl http://$EXTERNAL_IP
@@ -427,32 +470,32 @@ curl http://$EXTERNAL_IP/api/info
 
 ```bash
 # Check ApplicationLoadBalancer
-kubectl get applicationloadbalancer -n kube-system
-kubectl describe applicationloadbalancer -n kube-system alb-controller
+kubectl get applicationloadbalancer -n alb-infra
+kubectl describe applicationloadbalancer -n alb-infra alb
 
 # Check Gateway
-kubectl get gateway appgw-demo-gateway
-kubectl describe gateway appgw-demo-gateway
+kubectl get gateway agc-demo-gateway
+kubectl describe gateway agc-demo-gateway
 
 # Check HTTPRoute
-kubectl get httproute appgw-demo-route
-kubectl describe httproute appgw-demo-route
+kubectl get httproute agc-demo-route
+kubectl describe httproute agc-demo-route
 
 # Check pods
-kubectl get pods -l app=appgw-demo-app
+kubectl get pods -l app=agc-demo-app
 
 # Check ALB Controller
-kubectl get pods -n kube-system -l app=alb-controller
+kubectl get pods -n azure-alb-system -l app=alb-controller
 ```
 
 ### View Logs
 
 ```bash
 # Application logs
-kubectl logs -l app=appgw-demo-app --tail=50 -f
+kubectl logs -l app=agc-demo-app --tail=50 -f
 
 # ALB Controller logs
-kubectl logs -n kube-system -l app=alb-controller --tail=50 -f
+kubectl logs -n azure-alb-system -l app=alb-controller --tail=50 -f
 ```
 
 ## Advanced Features
@@ -464,8 +507,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   annotations:
-    alb.networking.azure.io/alb-name: alb-controller
-    alb.networking.azure.io/alb-namespace: kube-system
+    alb.networking.azure.io/alb-name: alb
+    alb.networking.azure.io/alb-namespace: alb-infra
 spec:
   gatewayClassName: azure-alb-external
   listeners:
@@ -516,16 +559,16 @@ spec:
 
 ```bash
 # Check ALB resource status
-kubectl describe applicationloadbalancer -n kube-system alb-controller
+kubectl describe applicationloadbalancer -n alb-infra alb
 
 # Check ALB Controller logs
-kubectl logs -n kube-system -l app=alb-controller
+kubectl logs -n azure-alb-system -l app=alb-controller
 
 # Verify subnet delegation
 az network vnet subnet show \
-  --resource-group rg-03-appgw-containers-demo \
+  --resource-group rg-03-agc-containers-demo \
   --vnet-name <vnet-name> \
-  --name appgw-subnet \
+  --name agc-subnet \
   --query delegations
 ```
 
@@ -533,31 +576,31 @@ az network vnet subnet show \
 
 ```bash
 # Check Gateway status
-kubectl describe gateway appgw-demo-gateway
+kubectl describe gateway agc-demo-gateway
 
 # Check events
 kubectl get events --sort-by='.lastTimestamp'
 
 # Verify Gateway references correct ALB
-kubectl get gateway appgw-demo-gateway -o yaml | grep alb
+kubectl get gateway agc-demo-gateway -o yaml | grep alb
 ```
 
 ### HTTPRoute Not Working
 
 ```bash
 # Check HTTPRoute status
-kubectl describe httproute appgw-demo-route
+kubectl describe httproute agc-demo-route
 
 # Verify backend service exists
-kubectl get service appgw-demo-service
+kubectl get service agc-demo-service
 
 # Check service endpoints
-kubectl get endpoints appgw-demo-service
+kubectl get endpoints agc-demo-service
 ```
 
 ## Comparison with Other Solutions
 
-| Feature | NGINX Ingress | Gateway API (Envoy) | App Gateway for Containers |
+| Feature | NGINX Ingress | Gateway API (Envoy) | AGC |
 |---------|--------------|---------------------|---------------------------|
 | **Azure Integration** | External | External | Native (Deep) |
 | **Management** | Self-managed | Self-managed | Fully managed by Azure |
@@ -591,7 +634,7 @@ kubectl get endpoints appgw-demo-service
 ```bash
 # Delete the resource group (removes all resources)
 az group delete \
-  --name rg-03-appgw-containers-demo \
+  --name rg-03-agc-containers-demo \
   --yes \
   --no-wait
 ```
@@ -616,17 +659,16 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 
 ### Official Documentation
 - [Application Gateway for Containers](https://learn.microsoft.com/azure/application-gateway/for-containers/)
-- [AKS Application Routing](https://learn.microsoft.com/azure/aks/app-routing)
 - [Gateway API on AKS](https://learn.microsoft.com/azure/aks/app-routing-gateway-api)
-- [Web App Routing Add-on](https://learn.microsoft.com/azure/aks/web-app-routing)
 
 ### Guides and Tutorials
-- [Quickstart: Deploy Application Gateway for Containers](https://learn.microsoft.com/azure/application-gateway/for-containers/quickstart-deploy-application-gateway-for-containers-alb-controller)
+- [Deploy Application Gateway for Containers ALB Controller with Helm](https://learn.microsoft.com/azure/application-gateway/for-containers/quickstart-deploy-application-gateway-for-containers-alb-controller-helm)
+- [Create AGC managed by ALB Controller](https://learn.microsoft.com/azure/application-gateway/for-containers/quickstart-create-application-gateway-for-containers-managed-by-alb-controller)
 - [Gateway API Overview](https://gateway-api.sigs.k8s.io/)
 
 ## Next Steps
 
-1. ✅ Deploy this demo to understand Azure Application Gateway for Containers
+1. ✅ Deploy this demo to understand Azure AGC
 2. 🔬 Explore advanced features (SSL/TLS, WAF, header routing)
 3. 📊 Compare performance and cost with other solutions
 4. 🚀 Consider for your production workloads

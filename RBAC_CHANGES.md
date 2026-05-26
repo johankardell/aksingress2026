@@ -30,7 +30,7 @@ All clusters use **Azure RBAC** instead of traditional Kubernetes RBAC. This pro
 
 ### 1. Bicep Templates Updated
 
-**All Demos:** `/01-nginx-ingress/infrastructure/main.bicep`, `/02-envoy-gateway-api/infrastructure/main.bicep`, `/03-appgw-for-containers/infrastructure/main.bicep`
+**All Demos:** `/01-nginx-ingress/infrastructure/main.bicep`, `/02-envoy-gateway-api/infrastructure/main.bicep`, `/03-agc-for-containers/infrastructure/main.bicep`
 
 **Enabled Azure RBAC:**
 ```bicep
@@ -137,7 +137,7 @@ fi
 After deploying with these changes, you can:
 
 1. Navigate to the Azure Portal
-2. Go to your AKS cluster (e.g., `nginx-demo-aks-*`, `envoy-demo-aks-*`, `appgw-demo-aks-*`)
+2. Go to your AKS cluster (e.g., `nginx-demo-aks-*`, `envoy-demo-aks-*`, `agc-demo-aks-*`)
 3. Click on **Workloads** in the left menu
 4. View **Deployments**, **Pods**, **ReplicaSets**, etc.
 5. Click on **Services and ingresses**
@@ -164,7 +164,7 @@ This is then passed to the Bicep template as a parameter override so the committ
 The parameter files contain a non-personal placeholder object ID:
 - `/01-nginx-ingress/infrastructure/main.bicepparam`
 - `/02-envoy-gateway-api/infrastructure/main.bicepparam`
-- `/03-appgw-for-containers/infrastructure/main.bicepparam`
+- `/03-agc-for-containers/infrastructure/main.bicepparam`
 
 Deployment scripts override this with the current user's ID automatically. Manual deployments using `az deployment group create` must provide their own ID, for example `--parameters userObjectId=<your-object-id>`.
 
@@ -189,7 +189,7 @@ To test the changes:
 
 2. **Demo 03:**
    ```bash
-   cd /home/johan/dev/github/aksingress2026/03-appgw-for-containers
+   cd /home/johan/dev/github/aksingress2026/03-agc-for-containers
    ./scripts/deploy.sh
    ```
 

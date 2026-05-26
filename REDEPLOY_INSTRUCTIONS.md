@@ -9,8 +9,8 @@ Your Bicep files have been updated to enable Azure Portal Kubernetes resource vi
 - `01-nginx-ingress/infrastructure/main.bicepparam` - Uses deployment-time Object ID
 - `02-envoy-gateway-api/infrastructure/main.bicep` - Added Azure RBAC + role assignments
 - `02-envoy-gateway-api/infrastructure/main.bicepparam` - Uses deployment-time Object ID
-- `03-appgw-for-containers/infrastructure/main.bicep` - Added Azure RBAC + role assignments
-- `03-appgw-for-containers/infrastructure/main.bicepparam` - Uses deployment-time Object ID
+- `03-agc-for-containers/infrastructure/main.bicep` - Added Azure RBAC + role assignments
+- `03-agc-for-containers/infrastructure/main.bicepparam` - Uses deployment-time Object ID
 
 **Your Object ID:** `<your-object-id>`
 
@@ -40,12 +40,12 @@ Delete and recreate everything:
 cd /home/johan/dev/github/aksingress2026
 ./01-nginx-ingress/scripts/cleanup.sh
 ./02-envoy-gateway-api/scripts/cleanup.sh
-./03-appgw-for-containers/scripts/cleanup.sh
+./03-agc-for-containers/scripts/cleanup.sh
 
 # Redeploy all demos with Azure RBAC
 ./01-nginx-ingress/scripts/deploy.sh
 ./02-envoy-gateway-api/scripts/deploy.sh
-./03-appgw-for-containers/scripts/deploy.sh
+./03-agc-for-containers/scripts/deploy.sh
 ```
 
 The deployment scripts automatically resolve your signed-in user's Object ID with:
@@ -78,9 +78,9 @@ az deployment group create \
   --parameters userObjectId=<your-object-id>
 
 # Update Demo 03
-cd ../../03-appgw-for-containers/infrastructure
+cd ../../03-agc-for-containers/infrastructure
 az deployment group create \
-  --resource-group rg-03-appgw-containers-demo \
+  --resource-group rg-03-agc-containers-demo \
   --template-file main.bicep \
   --parameters main.bicepparam \
   --parameters userObjectId=<your-object-id>
@@ -107,7 +107,7 @@ az aks get-credentials \
 
 # Demo 03
 az aks get-credentials \
-  --resource-group rg-03-appgw-containers-demo \
+  --resource-group rg-03-agc-containers-demo \
   --name <cluster-name> \
   --overwrite-existing
 ```

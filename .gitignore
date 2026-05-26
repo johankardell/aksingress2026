@@ -11,7 +11,7 @@ TestResults/
 .azure/
 01-nginx-ingress/infrastructure/*.json
 02-envoy-gateway-api/infrastructure/*.json
-03-appgw-for-containers/infrastructure/*.json
+03-agc-for-containers/infrastructure/*.json
 *.bicep.json
 
 # Kubernetes and Azure local state

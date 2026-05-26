@@ -2,7 +2,7 @@
 
 ## Overview
 
-All three demos (01-nginx-ingress, 02-envoy-gateway-api, 03-appgw-for-containers) have been updated with AKS best practices and production-ready settings.
+All three demos (01-nginx-ingress, 02-envoy-gateway-api, 03-agc-for-containers) have been updated with AKS best practices and production-ready settings.
 
 ## Enabled Features
 

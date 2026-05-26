@@ -619,7 +619,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 
 1. ✅ Deploy this demo to understand Gateway API
 2. 🔬 Experiment with advanced routing features
-3. 🚀 Compare with [Azure Application Gateway for Containers](../03-appgw-for-containers/)
+3. 🚀 Compare with [Azure AGC](../03-agc-for-containers/)
 4. 📚 Evaluate for your production workloads
 
 ---

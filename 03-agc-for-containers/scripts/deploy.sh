@@ -7,7 +7,7 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}================================================${NC}"
-echo -e "${GREEN}  Application Gateway for Containers - Deployment Orchestrator${NC}"
+echo -e "${GREEN}  AGC - Deployment Orchestrator${NC}"
 echo -e "${GREEN}================================================${NC}"
 echo
 
