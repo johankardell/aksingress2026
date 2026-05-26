@@ -50,6 +50,10 @@ echo
 # Get current user object ID for RBAC
 echo -e "${YELLOW}[4/10] Getting user information for RBAC...${NC}"
 USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
+if [ -z "$USER_OBJECT_ID" ]; then
+  echo -e "${RED}Failed to retrieve signed-in user Object ID.${NC}" >&2
+  exit 1
+fi
 echo -e "${GREEN}✓ User Object ID: ${USER_OBJECT_ID}${NC}"
 echo
 
