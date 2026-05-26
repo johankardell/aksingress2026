@@ -1,8 +1,5 @@
-ARG BUILDPLATFORM=linux/amd64
-ARG TARGETPLATFORM=linux/arm64
-
-# Build on the ACR Tasks host platform; the published .NET app is platform-neutral.
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project file and restore dependencies
@@ -13,8 +10,8 @@ RUN dotnet restore
 COPY . .
 RUN dotnet publish -c Release -o /app/publish --no-restore
 
-# Runtime stage targets the AKS node platform.
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
 # Copy published app

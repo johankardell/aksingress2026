@@ -18,7 +18,6 @@ RESOURCE_GROUP="rg-01-nginx-ingress-demo"
 LOCATION="swedencentral"
 DEPLOYMENT_NAME="nginx-demo-deployment"
 NGINX_NAMESPACE="ingress-nginx"
-IMAGE_PLATFORM="linux/arm64"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 
@@ -166,7 +165,6 @@ ACR_LOGIN_SERVER=$(az deployment group show \
 echo -e "${GREEN}✓ Infrastructure deployed${NC}"
 echo -e "  AKS Cluster: ${AKS_NAME}"
 echo -e "  ACR: ${ACR_NAME}"
-echo -e "  Image platform: ${IMAGE_PLATFORM}"
 echo
 
 # Get AKS credentials (using admin credentials for deployment)
@@ -193,7 +191,6 @@ az acr build \
   --registry $ACR_NAME \
   --image aks-ingress-demo:latest \
   --image aks-ingress-demo:nginx-v1.0.0 \
-  --platform $IMAGE_PLATFORM \
   --file Dockerfile \
   . \
   --output table

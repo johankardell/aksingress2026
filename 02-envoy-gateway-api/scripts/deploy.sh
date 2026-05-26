@@ -17,7 +17,6 @@ echo
 RESOURCE_GROUP="rg-02-envoy-gateway-demo"
 LOCATION="swedencentral"
 DEPLOYMENT_NAME="envoy-demo-deployment"
-IMAGE_PLATFORM="linux/arm64"
 
 delete_role_assignments() {
   local assignee="$1"
@@ -164,7 +163,6 @@ ACR_LOGIN_SERVER=$(az deployment group show \
 echo -e "${GREEN}✓ Infrastructure deployed${NC}"
 echo -e "  AKS Cluster: ${AKS_NAME}"
 echo -e "  ACR: ${ACR_NAME}"
-echo -e "  Image platform: ${IMAGE_PLATFORM}"
 echo
 
 # Get AKS credentials (using admin credentials for deployment)
@@ -191,7 +189,6 @@ az acr build \
   --registry $ACR_NAME \
   --image aks-ingress-demo:latest \
   --image aks-ingress-demo:envoy-v1.0.0 \
-  --platform $IMAGE_PLATFORM \
   --file Dockerfile \
   . \
   --output table

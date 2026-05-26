@@ -31,12 +31,11 @@ Visit http://localhost:5000 to see the application.
 az acr build \
   --registry <acr-name> \
   --image aks-ingress-demo:latest \
-  --platform linux/arm64 \
   --file Dockerfile \
   .
 ```
 
-This builds the image remotely in Azure, so the local machine does not need Docker installed. The `linux/arm64` platform matches the demo AKS node SKU.
+This builds the image remotely in Azure, so the local machine does not need Docker installed.
 
 ## Technology Stack
 

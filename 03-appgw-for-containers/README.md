@@ -338,7 +338,6 @@ cd ../shared/sample-app
 az acr build \
   --registry $ACR_NAME \
   --image aks-ingress-demo:latest \
-  --platform linux/arm64 \
   --file Dockerfile \
   .
 ```
