@@ -4,7 +4,7 @@
 
 ## Overview
 
-This demo deploys a simple .NET 8 web application to Azure Kubernetes Service (AKS) using the **Gateway API** with **Envoy Gateway** as the implementation. Gateway API is the modern, role-oriented successor to the Kubernetes Ingress API.
+This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (AKS) using the **Gateway API** with **Envoy Gateway** as the implementation. Gateway API is the modern, role-oriented successor to the Kubernetes Ingress API.
 
 **Why Gateway API?**
 - ✅ **Kubernetes Standard**: Official Kubernetes SIG project

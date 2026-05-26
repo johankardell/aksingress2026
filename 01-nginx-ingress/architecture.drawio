@@ -65,11 +65,11 @@
           <mxGeometry x="840" y="500" width="120" height="180" as="geometry" />
         </mxCell>
         
-        <mxCell id="pod1" value="Pod 1&#xa;.NET 8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+        <mxCell id="pod1" value="Pod 1&#xa;.NET 10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
           <mxGeometry x="860" y="540" width="80" height="50" as="geometry" />
         </mxCell>
         
-        <mxCell id="pod2" value="Pod 2&#xa;.NET 8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+        <mxCell id="pod2" value="Pod 2&#xa;.NET 10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
           <mxGeometry x="860" y="610" width="80" height="50" as="geometry" />
         </mxCell>
         
