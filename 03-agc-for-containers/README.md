@@ -244,6 +244,22 @@ spec:
 - Maps requests to Kubernetes services
 - Created by application teams
 
+#### 5. WebApplicationFirewallPolicy (Application Namespace)
+```yaml
+apiVersion: alb.networking.azure.io/v1
+kind: WebApplicationFirewallPolicy
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: agc-demo-route
+  webApplicationFirewall:
+    id: <azure-waf-policy-resource-id>
+```
+- Links the Azure WAF policy to the demo `HTTPRoute`
+- Protects all paths routed by `agc-demo-route`
+- Uses Azure WAF in prevention mode with the AGC-supported Default Rule Set (DRS) 2.1
+
 ## Prerequisites
 
 - Azure CLI (`az`) version 2.50.0+
@@ -255,6 +271,7 @@ spec:
   - Create Virtual Networks
   - Create AKS clusters
   - Register resource providers (Microsoft.ServiceNetworking)
+  - Create Application Gateway WAF policies
   - Create role assignments
 
 ## Deployment
@@ -436,6 +453,14 @@ sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMP
 kubectl apply -f service.yaml
 kubectl apply -f gateway.yaml
 kubectl apply -f httproute.yaml
+
+# Attach Azure WAF to the HTTPRoute
+WAF_POLICY_ID=$(az deployment group show \
+  --resource-group rg-03-agc-containers-demo \
+  --name agc-demo-deployment \
+  --query properties.outputs.wafPolicyId.value \
+  --output tsv)
+sed -e "s|\${WAF_POLICY_ID}|${WAF_POLICY_ID}|g" waf-policy.yaml | kubectl apply -f -
 ```
 
 #### Step 8: Get External IP
@@ -482,6 +507,10 @@ kubectl describe gateway agc-demo-gateway
 kubectl get httproute agc-demo-route
 kubectl describe httproute agc-demo-route
 
+# Check WAF policy attachment
+kubectl get webapplicationfirewallpolicy agc-demo-waf-policy
+kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy
+
 # Check pods
 kubectl get pods -l app=agc-demo-app
 
@@ -497,6 +526,27 @@ kubectl logs -l app=agc-demo-app --tail=50 -f
 
 # ALB Controller logs
 kubectl logs -n azure-alb-system -l app=alb-controller --tail=50 -f
+```
+
+### Validate WAF Blocking
+
+The demo creates an Azure Application Gateway WAF policy with `Microsoft_DefaultRuleSet` 2.1 in prevention mode and attaches it to `agc-demo-route` through the ALB Controller `WebApplicationFirewallPolicy` custom resource. Normal requests to `/`, `/health`, and `/api/info` should continue to return the sample app responses.
+
+Send a request that matches the managed ruleset to confirm WAF blocks it:
+
+```bash
+EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+
+# Expected: HTTP 403 from WAF
+curl -i "http://$EXTERNAL_IP/?text=/etc/passwd"
+```
+
+If the request is not blocked immediately, wait a minute for AGC programming to finish and inspect status:
+
+```bash
+kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy
+kubectl describe httproute agc-demo-route
+kubectl logs -n azure-alb-system -l app=alb-controller --tail=100
 ```
 
 ## Advanced Features
@@ -599,6 +649,21 @@ kubectl get service agc-demo-service
 kubectl get endpoints agc-demo-service
 ```
 
+### WAF Policy Not Attaching
+
+```bash
+# Check WAF custom resource status
+kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy
+
+# Confirm the Azure WAF policy exists in the same resource group and region as AGC
+az network application-gateway waf-policy show \
+  --ids $(az deployment group show \
+    --resource-group rg-03-agc-containers-demo \
+    --name agc-demo-deployment \
+    --query properties.outputs.wafPolicyId.value \
+    --output tsv)
+```
+
 ## Comparison with Other Solutions
 
 | Feature | NGINX Ingress | Gateway API (Envoy) | AGC |
@@ -648,6 +713,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 |----------|------|
 | AKS Cluster (2 nodes) | ~$140 |
 | Application Gateway for Containers | ~$40 (base) + consumption |
+| Web Application Firewall policy | May add WAF-related AGC charges depending on usage |
 | Azure Container Registry | ~$20 |
 | Virtual Network | No charge |
 | Public IP Address | ~$4 |

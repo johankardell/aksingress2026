@@ -1,0 +1,15 @@
+apiVersion: alb.networking.azure.io/v1
+kind: WebApplicationFirewallPolicy
+metadata:
+  name: agc-demo-waf-policy
+  namespace: default
+  labels:
+    demo: agc-containers
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: agc-demo-route
+    namespace: default
+  webApplicationFirewall:
+    id: ${WAF_POLICY_ID}

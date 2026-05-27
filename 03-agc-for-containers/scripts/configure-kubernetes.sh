@@ -19,6 +19,7 @@ ALB_CONTROLLER_NAMESPACE="azure-alb-system"
 ALB_RESOURCE_NAMESPACE="alb-infra"
 ALB_RESOURCE_NAME="alb"
 APPLICATIONLOADBALANCER_CRD="applicationloadbalancer.alb.networking.azure.io"
+WAF_POLICY_CRD="webapplicationfirewallpolicy.alb.networking.azure.io"
 ALB_HELM_VERSION="1.10.28"
 FEDERATED_IDENTITY_NAME="alb-controller"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -37,9 +38,11 @@ AGC_SUBNET_ID=$(az deployment group show --resource-group $RESOURCE_GROUP --name
 OIDC_ISSUER_URL=$(az deployment group show --resource-group $RESOURCE_GROUP --name $DEPLOYMENT_NAME --query properties.outputs.oidcIssuerUrl.value --output tsv)
 AGC_IDENTITY_NAME=$(az deployment group show --resource-group $RESOURCE_GROUP --name $DEPLOYMENT_NAME --query properties.outputs.agcIdentityName.value --output tsv)
 AGC_IDENTITY_CLIENT_ID=$(az deployment group show --resource-group $RESOURCE_GROUP --name $DEPLOYMENT_NAME --query properties.outputs.agcIdentityClientId.value --output tsv)
+WAF_POLICY_ID=$(az deployment group show --resource-group $RESOURCE_GROUP --name $DEPLOYMENT_NAME --query properties.outputs.wafPolicyId.value --output tsv)
 SAMPLE_APP_IMAGE_TAG=$(compute_sample_app_image_tag "$REPO_ROOT/shared/sample-app")
 echo -e "${GREEN}✓ AKS Cluster: ${AKS_NAME}${NC}"
 echo -e "${GREEN}✓ Image: ${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${SAMPLE_APP_IMAGE_TAG}${NC}"
+echo -e "${GREEN}✓ WAF Policy: ${WAF_POLICY_ID}${NC}"
 echo
 
 echo -e "${YELLOW}[2/5] Getting AKS credentials...${NC}"
@@ -113,6 +116,7 @@ if [ "$ALB_CRD_READY" != "true" ]; then
   exit 1
 fi
 kubectl wait --for=condition=Established --timeout=300s "crd/$APPLICATIONLOADBALANCER_CRD"
+kubectl wait --for=condition=Established --timeout=300s "crd/$WAF_POLICY_CRD"
 
 kubectl create namespace "$ALB_RESOURCE_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 cat <<EOF | kubectl apply -f -
@@ -155,6 +159,7 @@ sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMP
 kubectl apply -f service.yaml
 kubectl apply -f gateway.yaml
 kubectl apply -f httproute.yaml
+sed -e "s|\${WAF_POLICY_ID}|${WAF_POLICY_ID}|g" waf-policy.yaml | kubectl apply -f -
 echo -e "${GREEN}✓ Application deployed${NC}"
 echo
 
@@ -191,6 +196,7 @@ else
   echo "  kubectl get all"
   echo "  kubectl get gateway"
   echo "  kubectl get httproute"
+  echo "  kubectl get webapplicationfirewallpolicy"
   echo "  kubectl get applicationloadbalancer -n $ALB_RESOURCE_NAMESPACE"
   echo
   echo "To view logs:"
@@ -198,6 +204,9 @@ else
   echo
   echo "To view Gateway status:"
   echo "  kubectl describe gateway agc-demo-gateway"
+  echo
+  echo "To view WAF status:"
+  echo "  kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy"
   echo
   echo "To clean up:"
   echo "  ./scripts/cleanup.sh"

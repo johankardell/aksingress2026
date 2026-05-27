@@ -85,6 +85,28 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   }
 }
 
+// Azure Web Application Firewall policy for Application Gateway for Containers
+resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2024-05-01' = {
+  name: '${baseName}-waf-policy'
+  location: location
+  tags: tags
+  properties: {
+    policySettings: {
+      state: 'Enabled'
+      mode: 'Prevention'
+      requestBodyCheck: true
+    }
+    managedRules: {
+      managedRuleSets: [
+        {
+          ruleSetType: 'Microsoft_DefaultRuleSet'
+          ruleSetVersion: '2.1'
+        }
+      ]
+    }
+  }
+}
+
 // Azure Container Registry
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: acrName
@@ -267,5 +289,6 @@ output agcIdentityName string = agcIdentity.name
 output agcIdentityId string = agcIdentity.id
 output agcIdentityClientId string = agcIdentity.properties.clientId
 output agcIdentityPrincipalId string = agcIdentity.properties.principalId
+output wafPolicyId string = wafPolicy.id
 output resourceGroupName string = resourceGroup().name
 output nodeResourceGroupName string = aks.properties.nodeResourceGroup

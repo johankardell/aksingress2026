@@ -36,6 +36,7 @@ fi
 
 echo -e "${YELLOW}[1/2] Deleting Kubernetes resources...${NC}"
 # Delete Gateway API resources
+kubectl delete webapplicationfirewallpolicy agc-demo-waf-policy --ignore-not-found=true
 kubectl delete httproute agc-demo-route --ignore-not-found=true
 kubectl delete gateway agc-demo-gateway --ignore-not-found=true
 kubectl delete deployment agc-demo-app --ignore-not-found=true
