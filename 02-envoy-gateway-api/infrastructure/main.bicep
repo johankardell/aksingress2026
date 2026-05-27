@@ -23,7 +23,7 @@ param systemNodeCount int = 2
 param userObjectId string
 
 @description('Name of the shared Azure Container Registry')
-param sharedAcrName string = 'aksdemo${uniqueString(subscription().subscriptionId)}acr'
+param sharedAcrName string
 
 @description('Resource group that contains the shared Azure Container Registry')
 param sharedAcrResourceGroupName string = 'rg-aksdemo-shared'
