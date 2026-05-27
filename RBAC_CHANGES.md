@@ -92,25 +92,10 @@ az deployment group create \
 
 ### 3. Additional Fixes (Demo 03)
 
-**App Routing Fix:**
-- Fixed the App Routing enable logic to properly handle "already enabled" scenario
-- Changed from hard failure to success when App Routing is already enabled
-- Better error detection and user feedback
-
-```bash
-# Enable app routing (safe to run if already enabled)
-APPROUTING_OUTPUT=$(az aks approuting enable --resource-group $RESOURCE_GROUP --name $AKS_NAME 2>&1) || true
-
-if echo "$APPROUTING_OUTPUT" | grep -q "already enabled"; then
-  echo -e "${GREEN}✓ App Routing is already enabled${NC}"
-elif echo "$APPROUTING_OUTPUT" | grep -q "error\|Error\|ERROR"; then
-  echo -e "${RED}✗ Error enabling App Routing:${NC}"
-  echo "$APPROUTING_OUTPUT"
-  exit 1
-else
-  echo -e "${GREEN}✓ App Routing enabled${NC}"
-fi
-```
+**AGC Controller Fix:**
+- Demo 03 uses Application Gateway for Containers with the ALB Controller installed by Helm.
+- AKS Web App Routing and `az aks approuting` are intentionally not used.
+- The AGC managed identity receives the required Reader, AppGw for Containers Configuration Manager, and Network Contributor role assignments.
 
 ## Azure Roles Assigned
 

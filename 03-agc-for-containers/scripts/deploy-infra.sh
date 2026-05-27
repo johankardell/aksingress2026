@@ -52,8 +52,35 @@ delete_role_assignments() {
   done
 }
 
+delete_role_assignments_by_role() {
+  local role="$1"
+  local scope="$2"
+
+  if [ -z "$scope" ]; then
+    return
+  fi
+
+  local assignment_ids
+  assignment_ids=$(az role assignment list \
+    --role "$role" \
+    --scope "$scope" \
+    --query "[].id" \
+    --output tsv 2>/dev/null || true)
+
+  if [ -z "$assignment_ids" ]; then
+    return
+  fi
+
+  echo "$assignment_ids" | while IFS= read -r assignment_id; do
+    if [ -n "$assignment_id" ]; then
+      echo "Removing existing '$role' role assignment at scope: $scope"
+      az role assignment delete --ids "$assignment_id" --output none
+    fi
+  done
+}
+
 cleanup_conflicting_role_assignments() {
-  echo -e "${YELLOW}Role assignment already exists. Cleaning known conflicting assignments and retrying...${NC}"
+  echo -e "${YELLOW}Conflicting role assignment exists. Cleaning known demo role assignments and retrying...${NC}"
 
   local aks_name acr_name aks_id acr_id kubelet_object_id
   aks_name=$(az aks list --resource-group "$RESOURCE_GROUP" --query "[0].name" --output tsv 2>/dev/null || true)
@@ -68,7 +95,7 @@ cleanup_conflicting_role_assignments() {
     acr_id=$(az acr show --resource-group "$RESOURCE_GROUP" --name "$acr_name" --query id --output tsv 2>/dev/null || true)
   fi
 
-  delete_role_assignments "$kubelet_object_id" "AcrPull" "$acr_id"
+  delete_role_assignments_by_role "AcrPull" "$acr_id"
   delete_role_assignments "$USER_OBJECT_ID" "Azure Kubernetes Service Cluster User Role" "$aks_id"
   delete_role_assignments "$USER_OBJECT_ID" "Azure Kubernetes Service RBAC Cluster Admin" "$aks_id"
 }
@@ -88,7 +115,7 @@ deploy_infrastructure() {
     return
   fi
 
-  if grep -q "RoleAssignmentExists" "$output_file"; then
+  if grep -Eq "RoleAssignmentExists|RoleAssignmentUpdateNotPermitted" "$output_file"; then
     cleanup_conflicting_role_assignments
     rm -f "$output_file"
     az deployment group create \

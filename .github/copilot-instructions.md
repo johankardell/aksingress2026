@@ -72,7 +72,7 @@ aksingress2026/
 
 - AKS clusters use Azure RBAC role assignments and ACR Pull for the kubelet identity.
 - Scripts are intended to be idempotent. If `RoleAssignmentExists` occurs, deploy scripts should clean only the known conflicting role assignments for that demo and retry once.
-- Demo scripts currently use AKS admin credentials for deployment. Do not expand admin-credential usage beyond the existing pattern unless explicitly requested.
+- Demo scripts use Entra ID / Azure RBAC credentials with local AKS accounts disabled. Do not add `--admin` credentials unless explicitly requested.
 - Demo 03 uses AGC with the ALB Controller installed by Helm. Do not use AKS Web App Routing or `az aks approuting` for Demo 03.
 - Demo 03 must create the `ApplicationLoadBalancer` resource before applying Gateway resources.
 
@@ -82,13 +82,13 @@ aksingress2026/
 - Use `az acr build` / ACR Tasks to build the shared sample app image remotely.
 - Do **not** pass `--platform linux/arm64` and do not use `FROM --platform=...` in the Dockerfile. ACR Tasks dependency scanning has failed on that syntax in this repo, and the selected node SKU is AMD64/x64.
 - Keep the Dockerfile multi-stage:
-  - build stage: `mcr.microsoft.com/dotnet/sdk:8.0`
-  - runtime stage: `mcr.microsoft.com/dotnet/aspnet:8.0`
+  - build stage: `mcr.microsoft.com/dotnet/sdk:10.0`
+  - runtime stage: `mcr.microsoft.com/dotnet/aspnet:10.0`
 - Keep health endpoint `/health`; Kubernetes manifests use readiness and liveness probes.
 
 ## Sample Application
 
-- Current tech stack: **.NET 8 minimal API**.
+- Current tech stack: **.NET 10 minimal API**.
 - Project path: `shared/sample-app/sample-app.csproj`.
 - The app exposes:
   - `/`
