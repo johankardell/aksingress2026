@@ -34,7 +34,7 @@ param userObjectId string
 ])
 param maintenanceDayOfWeek string = 'Sunday'
 
-@description('Start time for AKS maintenance windows in HH:mm using the configured UTC offset')
+@description('Start time for AKS maintenance windows in HH:mm using the configured UTC offset, for example 02:00')
 param maintenanceStartTime string = '02:00'
 
 @description('Duration in hours for AKS maintenance windows')
@@ -42,7 +42,7 @@ param maintenanceStartTime string = '02:00'
 @maxValue(24)
 param maintenanceDurationHours int = 4
 
-@description('UTC offset for AKS maintenance windows. +01:00 aligns to Sweden standard time.')
+@description('Fixed UTC offset for AKS maintenance windows. +01:00 aligns to Sweden standard time; use +02:00 for Swedish summer time.')
 param maintenanceUtcOffset string = '+01:00'
 
 @description('Tags for all resources')
