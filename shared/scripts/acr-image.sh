@@ -1,5 +1,64 @@
 #!/bin/bash
 
+SHARED_ACR_RESOURCE_GROUP="${SHARED_ACR_RESOURCE_GROUP:-rg-aksdemo-shared}"
+SHARED_ACR_LOCATION="${SHARED_ACR_LOCATION:-swedencentral}"
+SHARED_ACR_SKU="${SHARED_ACR_SKU:-Standard}"
+
+get_shared_acr_name() {
+  if [ -n "${SHARED_ACR_NAME:-}" ]; then
+    echo "$SHARED_ACR_NAME"
+    return
+  fi
+
+  local subscription_id suffix
+  subscription_id=$(az account show --query id --output tsv)
+  suffix=$(printf '%s' "$subscription_id" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]' | cut -c1-12)
+
+  echo "aksdemo${suffix}acr"
+}
+
+ensure_shared_acr() {
+  local acr_name
+  acr_name=$(get_shared_acr_name)
+
+  echo "Ensuring shared resource group ${SHARED_ACR_RESOURCE_GROUP} exists..." >&2
+  az group create \
+    --name "$SHARED_ACR_RESOURCE_GROUP" \
+    --location "$SHARED_ACR_LOCATION" \
+    --output table >&2
+
+  if az acr show --name "$acr_name" --resource-group "$SHARED_ACR_RESOURCE_GROUP" >/dev/null 2>&1; then
+    echo "Reusing shared ACR ${acr_name} in ${SHARED_ACR_RESOURCE_GROUP}." >&2
+  else
+    echo "Creating shared ACR ${acr_name} in ${SHARED_ACR_RESOURCE_GROUP}..." >&2
+    if ! az acr create \
+      --name "$acr_name" \
+      --resource-group "$SHARED_ACR_RESOURCE_GROUP" \
+      --location "$SHARED_ACR_LOCATION" \
+      --sku "$SHARED_ACR_SKU" \
+      --admin-enabled false \
+      --output table >&2; then
+      if az acr show --name "$acr_name" --resource-group "$SHARED_ACR_RESOURCE_GROUP" >/dev/null 2>&1; then
+        echo "Shared ACR ${acr_name} was created by another process; reusing it." >&2
+      else
+        return 1
+      fi
+    fi
+  fi
+
+  echo "$acr_name"
+}
+
+get_shared_acr_login_server() {
+  local acr_name="$1"
+
+  az acr show \
+    --name "$acr_name" \
+    --resource-group "$SHARED_ACR_RESOURCE_GROUP" \
+    --query loginServer \
+    --output tsv
+}
+
 compute_sample_app_image_tag() {
   local sample_app_dir="$1"
   local source_hash

@@ -13,8 +13,6 @@ echo -e "${GREEN}  NGINX Ingress Demo - Image Build${NC}"
 echo -e "${GREEN}================================================${NC}"
 echo
 
-RESOURCE_GROUP="rg-01-nginx-ingress-demo"
-DEPLOYMENT_NAME="nginx-demo-deployment"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 IMAGE_REPOSITORY="aks-ingress-demo"
@@ -22,13 +20,14 @@ source "$REPO_ROOT/shared/scripts/acr-image.sh"
 
 command -v az >/dev/null 2>&1 || { echo -e "${RED}Azure CLI is required but not installed.${NC}" >&2; exit 1; }
 
-echo -e "${YELLOW}[1/2] Reading infrastructure outputs...${NC}"
-ACR_NAME=$(az deployment group show   --resource-group $RESOURCE_GROUP   --name $DEPLOYMENT_NAME   --query properties.outputs.acrName.value   --output tsv)
-echo -e "${GREEN}✓ ACR: ${ACR_NAME}${NC}"
+echo -e "${YELLOW}[1/2] Ensuring shared Azure Container Registry...${NC}"
+ACR_NAME=$(ensure_shared_acr)
+ACR_LOGIN_SERVER=$(get_shared_acr_login_server "$ACR_NAME")
+echo -e "${GREEN}✓ Shared ACR: ${ACR_NAME} (${SHARED_ACR_RESOURCE_GROUP})${NC}"
 echo
 
-echo -e "${YELLOW}[2/2] Ensuring container image exists in ACR...${NC}"
+echo -e "${YELLOW}[2/2] Ensuring container image exists in shared ACR...${NC}"
 ensure_sample_app_image "$ACR_NAME" "$REPO_ROOT/shared/sample-app" "$IMAGE_REPOSITORY"
-echo -e "${GREEN}✓ Container image is available in ACR${NC}"
-echo -e "  Image: ${IMAGE_REPOSITORY}:${SAMPLE_APP_IMAGE_TAG}"
+echo -e "${GREEN}✓ Container image is available in shared ACR${NC}"
+echo -e "  Image: ${ACR_LOGIN_SERVER}/${IMAGE_REPOSITORY}:${SAMPLE_APP_IMAGE_TAG}"
 echo

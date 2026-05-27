@@ -1,14 +1,14 @@
 # Gateway API with Envoy Demo - Infrastructure
 
-This folder contains Bicep infrastructure-as-code templates for deploying the AKS cluster with Gateway API support and supporting Azure resources.
+This folder contains Bicep infrastructure-as-code templates for deploying the AKS cluster with Gateway API support and supporting Azure resources. The Azure Container Registry is shared across demos and is created or reused by the deployment script in `rg-aksdemo-shared`.
 
 ## Resources Deployed
 
 - **AKS Cluster**: With Workload Identity, OIDC Issuer, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
-- **Azure Container Registry**: For storing container images
+- **Shared Azure Container Registry reference**: Existing registry in `rg-aksdemo-shared` used for the demo application image
 - **Log Analytics Workspace**: For monitoring and diagnostics
 - **Managed Identity**: System-assigned identity for AKS
-- **RBAC Role Assignment**: ACR Pull permission for AKS
+- **RBAC Role Assignment**: User AKS access; AKS `AcrPull` on the shared registry is assigned by `scripts/deploy-infra.sh`
 
 ## Key Features
 
@@ -36,7 +36,7 @@ This infrastructure enables modern AKS practices:
 │  └──────────────────────────────────┘  │
 │                                         │
 │  ┌──────────────────────────────────┐  │
-│  │   Azure Container Registry       │  │
+│  │ Shared ACR (rg-aksdemo-shared)   │  │
 │  │   - Standard SKU                 │  │
 │  └──────────────────────────────────┘  │
 │                                         │
@@ -64,12 +64,18 @@ Key parameters in `main.bicepparam`:
 # Create resource group
 az group create --name rg-02-envoy-gateway-demo --location swedencentral
 
-# Deploy Bicep template
+# Create or reuse the shared ACR, then deploy Bicep template
+source ../../shared/scripts/acr-image.sh
+ACR_NAME=$(ensure_shared_acr)
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create \
   --resource-group rg-02-envoy-gateway-demo \
   --name envoy-demo-deployment \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId="$USER_OBJECT_ID" \
+  --parameters sharedAcrName="$ACR_NAME" \
+  --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP"
 ```
 
 ### Get Deployment Outputs
@@ -88,8 +94,8 @@ The deployment provides these outputs:
 - `aksClusterName`: Name of the AKS cluster
 - `aksClusterId`: Resource ID of the AKS cluster
 - `oidcIssuerUrl`: OIDC issuer URL for workload identity
-- `acrName`: Name of the ACR
-- `acrLoginServer`: Login server URL for ACR
+- `acrName`: Name of the shared ACR
+- `acrLoginServer`: Login server URL for the shared ACR
 - `resourceGroupName`: Resource group name
 - `nodeResourceGroupName`: AKS-managed infrastructure resource group name (`<resource-group>-infra`)
 
@@ -109,7 +115,7 @@ Provides advanced networking where each pod gets an IP address from the virtual 
 Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
-- Azure Container Registry (Standard): ~$20/month
+- Shared Azure Container Registry (Standard): ~$20/month total in `rg-aksdemo-shared`
 - Log Analytics: ~$5/month (minimal ingestion)
 - Load Balancer (created later): ~$20/month
 
@@ -124,11 +130,13 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 az group delete --name rg-02-envoy-gateway-demo --yes --no-wait
 ```
 
+This deletes only the demo resource group. Delete `rg-aksdemo-shared` separately after all demos are cleaned up if you no longer need the shared ACR.
+
 ## Next Steps
 
 After infrastructure deployment:
 1. Get AKS credentials: `az aks get-credentials`
-2. Build and push the container image to ACR
+2. Build the shared container image in ACR
 3. Install Envoy Gateway
 4. Deploy Gateway API resources
 5. Deploy the application

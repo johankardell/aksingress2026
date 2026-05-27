@@ -1,15 +1,15 @@
 # AGC Demo - Infrastructure
 
-This folder contains Bicep infrastructure-as-code templates for deploying AKS with Application Gateway for Containers and supporting Azure resources.
+This folder contains Bicep infrastructure-as-code templates for deploying AKS with Application Gateway for Containers and supporting Azure resources. The Azure Container Registry is shared across demos and is created or reused by the deployment script in `rg-aksdemo-shared`.
 
 ## Resources Deployed
 
 - **Virtual Network**: With dedicated subnets for AKS and Application Gateway for Containers
 - **AKS Cluster**: Prepared for AGC with Workload Identity, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
-- **Azure Container Registry**: For storing container images
+- **Shared Azure Container Registry reference**: Existing registry in `rg-aksdemo-shared` used for the demo application image
 - **Log Analytics Workspace**: For monitoring and diagnostics
 - **Managed Identities**: System-assigned for AKS, user-assigned for Application Gateway for Containers
-- **RBAC Role Assignments**: ACR Pull and user AKS access; AGC identity roles are assigned by `scripts/deploy-infra.sh` after the AKS infrastructure resource group exists
+- **RBAC Role Assignments**: User AKS access; AKS `AcrPull` on the shared registry and AGC identity roles are assigned by `scripts/deploy-infra.sh` after the AKS infrastructure resource group exists
 
 ## Key Features
 
@@ -45,7 +45,7 @@ This infrastructure showcases Azure-native ingress capabilities:
 │  └──────────────────────────────────────────┘  │
 │                                                  │
 │  ┌──────────────────────────────────────────┐  │
-│  │   Azure Container Registry              │  │
+│  │ Shared ACR (rg-aksdemo-shared)          │  │
 │  └──────────────────────────────────────────┘  │
 │                                                  │
 │  ┌──────────────────────────────────────────┐  │
@@ -83,12 +83,18 @@ Application Gateway for Containers (AGC) is Azure's modern, cloud-native applica
 # Create resource group
 az group create --name rg-03-agc-containers-demo --location swedencentral
 
-# Deploy Bicep template
+# Create or reuse the shared ACR, then deploy Bicep template
+source ../../shared/scripts/acr-image.sh
+ACR_NAME=$(ensure_shared_acr)
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create \
   --resource-group rg-03-agc-containers-demo \
   --name agc-demo-deployment \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId="$USER_OBJECT_ID" \
+  --parameters sharedAcrName="$ACR_NAME" \
+  --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP"
 ```
 
 ### Get Deployment Outputs
@@ -107,8 +113,8 @@ The deployment provides these outputs:
 - `aksClusterName`: Name of the AKS cluster
 - `aksClusterId`: Resource ID of the AKS cluster
 - `oidcIssuerUrl`: OIDC issuer URL for workload identity
-- `acrName`: Name of the ACR
-- `acrLoginServer`: Login server URL for ACR
+- `acrName`: Name of the shared ACR
+- `acrLoginServer`: Login server URL for the shared ACR
 - `vnetName`: Virtual network name
 - `aksSubnetId`: AKS subnet resource ID
 - `agcSubnetId`: Application Gateway subnet resource ID
@@ -130,7 +136,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Application Gateway for Containers: ~$40/month (base capacity)
-- Azure Container Registry (Standard): ~$20/month
+- Shared Azure Container Registry (Standard): ~$20/month total in `rg-aksdemo-shared`
 - Log Analytics: ~$5/month (minimal ingestion)
 - Virtual Network: No charge (included)
 
@@ -145,11 +151,13 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 az group delete --name rg-03-agc-containers-demo --yes --no-wait
 ```
 
+This deletes only the demo resource group. Delete `rg-aksdemo-shared` separately after all demos are cleaned up if you no longer need the shared ACR.
+
 ## Next Steps
 
 After infrastructure deployment:
 1. Get AKS credentials: `az aks get-credentials`
 2. Install the ALB Controller with Helm
-3. Build and push the container image to ACR
+3. Build the shared container image in ACR
 4. Create the `ApplicationLoadBalancer` resource
 5. Deploy Gateway API resources and the application with AGC annotations
