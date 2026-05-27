@@ -194,7 +194,7 @@ helm install ingress-nginx ingress-nginx/ingress-nginx \
 cd ../kubernetes
 
 # Get ACR login server
-ACR_LOGIN_SERVER=$(az acr show --resource-group rg-aksdemo-shared --name $ACR_NAME --query loginServer --output tsv)
+ACR_LOGIN_SERVER=$(az acr show --resource-group rg-aksdemo-shared --name "$ACR_NAME" --query loginServer --output tsv)
 
 # Deploy application (replace ACR_LOGIN_SERVER in deployment.yaml)
 sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -

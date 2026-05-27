@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 SHARED_ACR_RESOURCE_GROUP="${SHARED_ACR_RESOURCE_GROUP:-rg-aksdemo-shared}"
 SHARED_ACR_LOCATION="${SHARED_ACR_LOCATION:-swedencentral}"
