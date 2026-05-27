@@ -255,6 +255,28 @@ autoUpgradeProfile: {
 }
 ```
 
+Kubernetes auto-upgrades and managed node OS image upgrades are constrained to the same planned maintenance window in every demo:
+
+```bicep
+resource autoUpgradeMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-01-01' = {
+  parent: aks
+  name: 'aksManagedAutoUpgradeSchedule'
+  properties: {
+    maintenanceWindow: {
+      schedule: {
+        weekly: {
+          dayOfWeek: maintenanceDayOfWeek
+          intervalWeeks: 1
+        }
+      }
+      durationHours: maintenanceDurationHours
+      utcOffset: maintenanceUtcOffset
+      startTime: maintenanceStartTime
+    }
+  }
+}
+```
+
 **Upgrade Channels:**
 - `stable`: Recommended for production (what we use)
 - `rapid`: Latest Kubernetes versions
