@@ -97,6 +97,9 @@ cleanup_conflicting_role_assignments() {
 
   if [ -n "$acr_name" ]; then
     acr_id=$(az acr show --resource-group "$SHARED_ACR_RESOURCE_GROUP" --name "$acr_name" --query id --output tsv 2>/dev/null || true)
+    if [ -z "$acr_id" ]; then
+      echo "Shared ACR $acr_name was not found in $SHARED_ACR_RESOURCE_GROUP; skipping ACR role cleanup."
+    fi
   fi
 
   delete_role_assignments_by_role "AcrPull" "$acr_id"

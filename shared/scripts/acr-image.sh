@@ -11,11 +11,17 @@ get_shared_acr_name() {
     return
   fi
 
-  local subscription_id suffix
+  local subscription_id suffix acr_name
   subscription_id=$(az account show --query id --output tsv)
   suffix=$(printf '%s' "$subscription_id" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]' | cut -c1-12)
+  acr_name="aksdemo${suffix}acr"
 
-  echo "aksdemo${suffix}acr"
+  if [[ ! "$acr_name" =~ ^[[:alnum:]]{5,50}$ ]]; then
+    echo "Generated ACR name '$acr_name' does not meet Azure Container Registry naming requirements." >&2
+    return 1
+  fi
+
+  echo "$acr_name"
 }
 
 ensure_shared_acr() {
