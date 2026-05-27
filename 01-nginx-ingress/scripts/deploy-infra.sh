@@ -134,7 +134,12 @@ ensure_role_assignment() {
   fi
 
   local existing_count
-  existing_count=$(az role assignment list     --assignee "$principal_id"     --role "$role_id"     --scope "$scope"     --query "length(@)"     --output tsv 2>/dev/null || echo "0")
+  existing_count=$(az role assignment list \
+    --assignee "$principal_id" \
+    --role "$role_id" \
+    --scope "$scope" \
+    --query "length(@)" \
+    --output tsv 2>/dev/null || echo "0")
 
   if [ "$existing_count" != "0" ]; then
     echo "Role assignment already exists: $description"
@@ -143,7 +148,12 @@ ensure_role_assignment() {
 
   echo "Creating role assignment: $description"
   for attempt in {1..6}; do
-    if az role assignment create       --assignee-object-id "$principal_id"       --assignee-principal-type "$principal_type"       --role "$role_id"       --scope "$scope"       --output none; then
+    if az role assignment create \
+      --assignee-object-id "$principal_id" \
+      --assignee-principal-type "$principal_type" \
+      --role "$role_id" \
+      --scope "$scope" \
+      --output none; then
       return
     fi
 
@@ -161,7 +171,15 @@ deploy_infrastructure() {
   local output_file
   output_file=$(mktemp)
 
-  if az deployment group create     --resource-group $RESOURCE_GROUP     --name $DEPLOYMENT_NAME     --template-file main.bicep     --parameters main.bicepparam     --parameters userObjectId="$USER_OBJECT_ID"     --parameters sharedAcrName="$ACR_NAME"     --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP"     --output table 2>&1 | tee "$output_file"; then
+  if az deployment group create \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$DEPLOYMENT_NAME" \
+    --template-file main.bicep \
+    --parameters main.bicepparam \
+    --parameters userObjectId="$USER_OBJECT_ID" \
+    --parameters sharedAcrName="$ACR_NAME" \
+    --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP" \
+    --output table 2>&1 | tee "$output_file"; then
     rm -f "$output_file"
     return
   fi
@@ -169,7 +187,15 @@ deploy_infrastructure() {
   if grep -Eq "RoleAssignmentExists|RoleAssignmentUpdateNotPermitted" "$output_file"; then
     cleanup_conflicting_role_assignments
     rm -f "$output_file"
-    az deployment group create       --resource-group $RESOURCE_GROUP       --name $DEPLOYMENT_NAME       --template-file main.bicep       --parameters main.bicepparam       --parameters userObjectId="$USER_OBJECT_ID"       --parameters sharedAcrName="$ACR_NAME"       --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP"       --output table
+    az deployment group create \
+      --resource-group "$RESOURCE_GROUP" \
+      --name "$DEPLOYMENT_NAME" \
+      --template-file main.bicep \
+      --parameters main.bicepparam \
+      --parameters userObjectId="$USER_OBJECT_ID" \
+      --parameters sharedAcrName="$ACR_NAME" \
+      --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP" \
+      --output table
   else
     rm -f "$output_file"
     return 1
