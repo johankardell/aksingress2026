@@ -16,6 +16,7 @@ echo
 RESOURCE_GROUP="rg-01-nginx-ingress-demo"
 DEPLOYMENT_NAME="nginx-demo-deployment"
 NGINX_NAMESPACE="ingress-nginx"
+APP_NAMESPACE="demo"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 IMAGE_REPOSITORY="aks-ingress-demo"
@@ -50,6 +51,7 @@ echo
 
 echo -e "${YELLOW}[4/5] Deploying application...${NC}"
 cd "$SCRIPT_DIR/../kubernetes"
+kubectl apply -f namespace.yaml
 sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f ingress.yaml
@@ -58,7 +60,7 @@ echo
 
 echo -e "${YELLOW}[5/5] Waiting for external IP (this may take 2-3 minutes)...${NC}"
 for _ in {1..30}; do
-  EXTERNAL_IP=$(kubectl get ingress nginx-demo-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+  EXTERNAL_IP=$(kubectl get ingress nginx-demo-ingress -n "$APP_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
   if [ -n "$EXTERNAL_IP" ]; then
     break
   fi
@@ -69,7 +71,7 @@ echo
 
 if [ -z "$EXTERNAL_IP" ]; then
   echo -e "${RED}⚠ Warning: External IP not yet assigned. Check status with:${NC}"
-  echo -e "  kubectl get ingress nginx-demo-ingress"
+  echo -e "  kubectl get ingress nginx-demo-ingress -n $APP_NAMESPACE"
 else
   echo -e "${GREEN}✓ External IP assigned${NC}"
   echo
@@ -85,11 +87,11 @@ else
   echo -e "${YELLOW}Note: It may take 30-60 seconds for the application to become fully available.${NC}"
   echo
   echo "To view resources:"
-  echo "  kubectl get all"
-  echo "  kubectl get ingress"
+  echo "  kubectl get all -n $APP_NAMESPACE"
+  echo "  kubectl get ingress -n $APP_NAMESPACE"
   echo
   echo "To view logs:"
-  echo "  kubectl logs -l app=nginx-demo-app"
+  echo "  kubectl logs -n $APP_NAMESPACE -l app=nginx-demo-app"
   echo
   echo "To clean up:"
   echo "  ./scripts/cleanup.sh"

@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nginx-demo-ingress
-  namespace: default
+  namespace: demo
   labels:
     app: nginx-demo-app
     demo: nginx-ingress

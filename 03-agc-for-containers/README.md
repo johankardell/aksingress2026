@@ -65,7 +65,7 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 │  │  │  └──────────────────────────────────────────────────────────┘  │  │ │
 │  │  │                                                                 │  │ │
 │  │  │  ┌──────────────────────────────────────────────────────────┐  │  │ │
-│  │  │  │  Namespace: default                                       │  │  │ │
+│  │  │  │  Namespace: demo                                       │  │  │ │
 │  │  │  │                                                            │  │  │ │
 │  │  │  │  ┌────────────────────────────────────────────────────┐   │  │  │ │
 │  │  │  │  │  Gateway: agc-demo-gateway                       │   │  │  │ │
@@ -159,7 +159,7 @@ Key Azure-Specific Features:
 │  │   │  └──────────────────────────────────────────────────┘│ ││
 │  │   │                                                        │ ││
 │  │   │  ┌──────────────────────────────────────────────────┐│ ││
-│  │   │  │  default Namespace (Application)                 ││ ││
+│  │   │  │  demo Namespace (Application)                 ││ ││
 │  │   │  │  - Gateway: agc-demo-gateway                   ││ ││
 │  │   │  │  - HTTPRoute: agc-demo-route                   ││ ││
 │  │   │  │  - Service: agc-demo-service                   ││ ││
@@ -213,6 +213,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
+  namespace: demo
   annotations:
     alb.networking.azure.io/alb-name: alb
     alb.networking.azure.io/alb-namespace: alb-infra
@@ -432,6 +433,7 @@ cd ../03-agc-for-containers/kubernetes
 ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
 
 # Deploy application
+kubectl apply -f namespace.yaml
 sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f gateway.yaml
@@ -442,10 +444,10 @@ kubectl apply -f httproute.yaml
 
 ```bash
 # Wait for Gateway to get IP (may take 2-3 minutes)
-kubectl get gateway agc-demo-gateway --watch
+kubectl get gateway agc-demo-gateway -n demo --watch
 
 # Once IP is assigned
-EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 echo "Application URL: http://$EXTERNAL_IP"
 ```
 
@@ -455,7 +457,7 @@ echo "Application URL: http://$EXTERNAL_IP"
 
 ```bash
 # Get the external IP
-EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 
 # Main page
 curl http://$EXTERNAL_IP
@@ -470,20 +472,23 @@ curl http://$EXTERNAL_IP/api/info
 ### Verify Resources
 
 ```bash
+# Check all demo application resources
+kubectl get all -n demo
+
 # Check ApplicationLoadBalancer
 kubectl get applicationloadbalancer -n alb-infra
 kubectl describe applicationloadbalancer -n alb-infra alb
 
 # Check Gateway
-kubectl get gateway agc-demo-gateway
-kubectl describe gateway agc-demo-gateway
+kubectl get gateway agc-demo-gateway -n demo
+kubectl describe gateway agc-demo-gateway -n demo
 
 # Check HTTPRoute
-kubectl get httproute agc-demo-route
-kubectl describe httproute agc-demo-route
+kubectl get httproute agc-demo-route -n demo
+kubectl describe httproute agc-demo-route -n demo
 
 # Check pods
-kubectl get pods -l app=agc-demo-app
+kubectl get pods -n demo -l app=agc-demo-app
 
 # Check ALB Controller
 kubectl get pods -n azure-alb-system -l app=alb-controller
@@ -493,7 +498,7 @@ kubectl get pods -n azure-alb-system -l app=alb-controller
 
 ```bash
 # Application logs
-kubectl logs -l app=agc-demo-app --tail=50 -f
+kubectl logs -n demo -l app=agc-demo-app --tail=50 -f
 
 # ALB Controller logs
 kubectl logs -n azure-alb-system -l app=alb-controller --tail=50 -f
@@ -507,6 +512,7 @@ kubectl logs -n azure-alb-system -l app=alb-controller --tail=50 -f
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
+  namespace: demo
   annotations:
     alb.networking.azure.io/alb-name: alb
     alb.networking.azure.io/alb-namespace: alb-infra
@@ -577,26 +583,26 @@ az network vnet subnet show \
 
 ```bash
 # Check Gateway status
-kubectl describe gateway agc-demo-gateway
+kubectl describe gateway agc-demo-gateway -n demo
 
 # Check events
-kubectl get events --sort-by='.lastTimestamp'
+kubectl get events -n demo --sort-by='.lastTimestamp'
 
 # Verify Gateway references correct ALB
-kubectl get gateway agc-demo-gateway -o yaml | grep alb
+kubectl get gateway agc-demo-gateway -n demo -o yaml | grep alb
 ```
 
 ### HTTPRoute Not Working
 
 ```bash
 # Check HTTPRoute status
-kubectl describe httproute agc-demo-route
+kubectl describe httproute agc-demo-route -n demo
 
 # Verify backend service exists
-kubectl get service agc-demo-service
+kubectl get service agc-demo-service -n demo
 
 # Check service endpoints
-kubectl get endpoints agc-demo-service
+kubectl get endpoints agc-demo-service -n demo
 ```
 
 ## Comparison with Other Solutions

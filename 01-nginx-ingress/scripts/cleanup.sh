@@ -12,6 +12,7 @@ echo -e "${YELLOW}================================================${NC}"
 echo
 
 RESOURCE_GROUP="rg-01-nginx-ingress-demo"
+APP_NAMESPACE="demo"
 
 # Confirm deletion
 echo -e "${RED}WARNING: This will delete the following:${NC}"
@@ -31,9 +32,10 @@ fi
 
 echo -e "${YELLOW}[1/2] Deleting Kubernetes resources...${NC}"
 # Delete ingress first to release public IP
-kubectl delete ingress nginx-demo-ingress --ignore-not-found=true
-kubectl delete deployment nginx-demo-app --ignore-not-found=true
-kubectl delete service nginx-demo-service --ignore-not-found=true
+kubectl delete ingress nginx-demo-ingress -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete deployment nginx-demo-app -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete service nginx-demo-service -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete namespace "$APP_NAMESPACE" --ignore-not-found=true
 
 # Delete NGINX Ingress Controller
 helm uninstall ingress-nginx -n ingress-nginx 2>/dev/null || echo "Helm release not found"

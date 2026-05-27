@@ -67,7 +67,7 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 │                              │ Routes based on HTTPRoute                │  │
 │                              ▼                                          │  │
 │  │  ┌─────────────────────────────────────────────────────────────┐   │  │
-│  │  │  Namespace: default                                          │   │  │
+│  │  │  Namespace: demo                                          │   │  │
 │  │  │                                                               │   │  │
 │  │  │  ┌────────────────────────────────────────────────────────┐  │   │  │
 │  │  │  │  Gateway: envoy-demo-gateway                           │  │   │  │
@@ -349,6 +349,7 @@ cd ../02-envoy-gateway-api/kubernetes
 ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
 
 # Deploy application
+kubectl apply -f namespace.yaml
 sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f gateway.yaml
@@ -359,10 +360,10 @@ kubectl apply -f httproute.yaml
 
 ```bash
 # Wait for Gateway to get IP (may take 2-3 minutes)
-kubectl get gateway envoy-demo-gateway --watch
+kubectl get gateway envoy-demo-gateway -n demo --watch
 
 # Once IP is assigned
-EXTERNAL_IP=$(kubectl get gateway envoy-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway envoy-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 echo "Application URL: http://$EXTERNAL_IP"
 ```
 
@@ -372,7 +373,7 @@ echo "Application URL: http://$EXTERNAL_IP"
 
 ```bash
 # Get the external IP
-EXTERNAL_IP=$(kubectl get gateway envoy-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway envoy-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 
 # Main page
 curl http://$EXTERNAL_IP
@@ -387,29 +388,32 @@ curl http://$EXTERNAL_IP/api/info
 ### Verify Gateway API Resources
 
 ```bash
+# Check all demo application resources
+kubectl get all -n demo
+
 # Check GatewayClass
 kubectl get gatewayclass
 
 # Check Gateway
-kubectl get gateway envoy-demo-gateway
-kubectl describe gateway envoy-demo-gateway
+kubectl get gateway envoy-demo-gateway -n demo
+kubectl describe gateway envoy-demo-gateway -n demo
 
 # Check HTTPRoute
-kubectl get httproute envoy-demo-route
-kubectl describe httproute envoy-demo-route
+kubectl get httproute envoy-demo-route -n demo
+kubectl describe httproute envoy-demo-route -n demo
 
 # Check pods
-kubectl get pods -l app=envoy-demo-app
+kubectl get pods -n demo -l app=envoy-demo-app
 
 # Check service
-kubectl get service envoy-demo-service
+kubectl get service envoy-demo-service -n demo
 ```
 
 ### View Logs
 
 ```bash
 # Application logs
-kubectl logs -l app=envoy-demo-app --tail=50 -f
+kubectl logs -n demo -l app=envoy-demo-app --tail=50 -f
 
 # Envoy Gateway logs
 kubectl logs -n envoy-gateway-system -l control-plane=envoy-gateway --tail=50 -f
@@ -480,36 +484,36 @@ spec:
 
 ```bash
 # Check Gateway status
-kubectl describe gateway envoy-demo-gateway
+kubectl describe gateway envoy-demo-gateway -n demo
 
 # Check Envoy service
 kubectl get svc -n envoy-gateway-system
 
 # Check events
-kubectl get events --sort-by='.lastTimestamp'
+kubectl get events -n demo --sort-by='.lastTimestamp'
 ```
 
 ### HTTPRoute Not Working
 
 ```bash
 # Check HTTPRoute status
-kubectl describe httproute envoy-demo-route
+kubectl describe httproute envoy-demo-route -n demo
 
 # Verify parentRefs match Gateway name
-kubectl get httproute envoy-demo-route -o yaml
+kubectl get httproute envoy-demo-route -n demo -o yaml
 ```
 
 ### Application Not Responding
 
 ```bash
 # Check pod status
-kubectl get pods -l app=envoy-demo-app
+kubectl get pods -n demo -l app=envoy-demo-app
 
 # Check service endpoints
-kubectl get endpoints envoy-demo-service
+kubectl get endpoints envoy-demo-service -n demo
 
 # Test service directly
-kubectl run test-pod --rm -i --tty --image=curlimages/curl -- sh
+kubectl run test-pod -n demo --rm -i --tty --image=curlimages/curl -- sh
 curl http://envoy-demo-service/health
 ```
 
