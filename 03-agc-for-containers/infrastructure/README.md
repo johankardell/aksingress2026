@@ -64,6 +64,12 @@ Key parameters in `main.bicepparam`:
 - `kubernetesVersion`: AKS version (default: 1.35.4)
 - `systemNodeSize`: VM size (default: Standard_B4as_v2)
 - `systemNodeCount`: Number of nodes (default: 2)
+- `maintenanceDayOfWeek`: AKS auto-upgrade and node OS image maintenance day (default: Sunday)
+- `maintenanceStartTime`: AKS maintenance start time in HH:mm in the configured UTC offset (default: 02:00)
+- `maintenanceDurationHours`: AKS maintenance window duration in hours (default: 4)
+- `maintenanceUtcOffset`: Fixed AKS maintenance window UTC offset for Sweden local expectations (default: +01:00; use +02:00 for Swedish summer time)
+
+The AKS Kubernetes auto-upgrade and managed node OS image schedules use the same weekly nighttime maintenance window.
 
 ## Application Gateway for Containers
 

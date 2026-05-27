@@ -76,6 +76,7 @@ All demos are configured and tested for **Sweden Central** region:
 | **VM Specs** | 4 vCPUs, 16 GiB RAM | Modern Ampere Altra processor |
 | **AKS SKU Tier** | `Free` | Cost-optimized |
 | **Node Count** | 2 per cluster | Suitable for demos |
+| **AKS Maintenance Window** | Sunday 02:00-06:00 (fixed `+01:00`) | Nighttime auto-upgrade and node OS image updates |
 
 **Resource Group Names**:
 - Demo 01: `rg-01-nginx-ingress-demo`

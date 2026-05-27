@@ -22,6 +22,29 @@ param systemNodeCount int = 2
 @description('Azure AD user object ID for RBAC admin access')
 param userObjectId string
 
+@description('Day of week for AKS auto-upgrade and node OS maintenance windows')
+@allowed([
+  'Monday'
+  'Tuesday'
+  'Wednesday'
+  'Thursday'
+  'Friday'
+  'Saturday'
+  'Sunday'
+])
+param maintenanceDayOfWeek string = 'Sunday'
+
+@description('Start time for AKS maintenance windows in HH:mm using the configured UTC offset, for example 02:00')
+param maintenanceStartTime string = '02:00'
+
+@description('Duration in hours for AKS maintenance windows')
+@minValue(4)
+@maxValue(24)
+param maintenanceDurationHours int = 4
+
+@description('Fixed UTC offset for AKS maintenance windows. +01:00 aligns to Sweden standard time; use +02:00 for Swedish summer time.')
+param maintenanceUtcOffset string = '+01:00'
+
 @description('Tags for all resources')
 param tags object = {
   Environment: environment
@@ -215,6 +238,44 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
     
     autoUpgradeProfile: {
       upgradeChannel: 'stable'
+    }
+  }
+}
+
+// AKS maintenance schedule for Kubernetes auto-upgrades
+resource autoUpgradeMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-01-01' = {
+  parent: aks
+  name: 'aksManagedAutoUpgradeSchedule'
+  properties: {
+    maintenanceWindow: {
+      schedule: {
+        weekly: {
+          dayOfWeek: maintenanceDayOfWeek
+          intervalWeeks: 1
+        }
+      }
+      durationHours: maintenanceDurationHours
+      utcOffset: maintenanceUtcOffset
+      startTime: maintenanceStartTime
+    }
+  }
+}
+
+// AKS maintenance schedule for managed node OS image upgrades
+resource nodeImageMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-01-01' = {
+  parent: aks
+  name: 'aksManagedNodeOSUpgradeSchedule'
+  properties: {
+    maintenanceWindow: {
+      schedule: {
+        weekly: {
+          dayOfWeek: maintenanceDayOfWeek
+          intervalWeeks: 1
+        }
+      }
+      durationHours: maintenanceDurationHours
+      utcOffset: maintenanceUtcOffset
+      startTime: maintenanceStartTime
     }
   }
 }
