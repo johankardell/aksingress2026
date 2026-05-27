@@ -14,7 +14,12 @@ ensure_role_assignment() {
   fi
 
   local existing_count
-  existing_count=$(az role assignment list     --assignee "$principal_id"     --role "$role_id"     --scope "$scope"     --query "length(@)"     --output tsv 2>/dev/null || echo "0")
+  existing_count=$(az role assignment list \
+    --assignee "$principal_id" \
+    --role "$role_id" \
+    --scope "$scope" \
+    --query "length(@)" \
+    --output tsv 2>/dev/null || echo "0")
 
   if [ "$existing_count" != "0" ]; then
     echo "Role assignment already exists: $description"
@@ -23,7 +28,12 @@ ensure_role_assignment() {
 
   echo "Creating role assignment: $description"
   for attempt in {1..6}; do
-    if az role assignment create       --assignee-object-id "$principal_id"       --assignee-principal-type "$principal_type"       --role "$role_id"       --scope "$scope"       --output none; then
+    if az role assignment create \
+      --assignee-object-id "$principal_id" \
+      --assignee-principal-type "$principal_type" \
+      --role "$role_id" \
+      --scope "$scope" \
+      --output none; then
       return
     fi
 
