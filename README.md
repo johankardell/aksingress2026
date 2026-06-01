@@ -192,9 +192,22 @@ All demos use the same [.NET 10 minimal API application](./shared/sample-app/), 
 
 - **Main Page** (`/`) - Beautiful UI showing demo information
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) - Compatibility, liveness, and readiness endpoints
-- **API Info** (`/api/info`) - JSON metadata endpoint
+- **API Info** (`/api/info`) - JSON metadata endpoint with the current request ID
+- **Request Tracing** - Accepts or generates `X-Request-Id`, returns it as a response header, and includes it in application logs
 
 The application displays which demo and ingress type is running, making it easy to verify successful deployment.
+
+Trace one request through the application logs:
+
+```bash
+REQUEST_ID="demo-$(date +%s)"
+APP_HOST="<application-ip-or-hostname>"
+APP_NAMESPACE="demo" # sample manifests in this repository deploy to the demo namespace
+APP_LABEL="app=nginx-demo-app" # use app=envoy-demo-app or app=agc-demo-app for those demos
+
+curl -i -H "X-Request-Id: ${REQUEST_ID}" "http://${APP_HOST}/api/info"
+kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUEST_ID}"
+```
 
 ## Cost Considerations
 
