@@ -297,7 +297,7 @@ Show the contrast. With Ingress, the app developer files a PR that touches a clu
    ┌──────────────────────  AKS Cluster  ─────────────────────┐
    │                                                          │
    │  envoy-gateway (control plane, Deployment)               │
-   │      │  watches GatewayClass=envoy-gateway + Gateway     │
+   │      │  watches GatewayClass, Gateway + HTTPRoute        │
    │      ▼  programs                                          │
    │  Envoy data plane Pods (one Deployment per Gateway)       │
    │      ▲                                                    │
