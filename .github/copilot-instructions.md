@@ -174,7 +174,8 @@ Before finishing changes:
   az bicep build --file 01-nginx-ingress/infrastructure/main.bicep
   az bicep build --file 02-envoy-gateway-api/infrastructure/main.bicep
   az bicep build --file 03-agc-for-containers/infrastructure/main.bicep
-   az bicep build --file 04-managed-istio-ambient/infrastructure/main.bicep
+  az bicep build --file 04-managed-istio-ambient/infrastructure/main.bicep
+  az bicep build-params --file 04-managed-istio-ambient/infrastructure/main.bicepparam
   ```
 - Run shell syntax checks for changed scripts:
   ```bash
