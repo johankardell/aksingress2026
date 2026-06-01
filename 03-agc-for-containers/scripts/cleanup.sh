@@ -26,7 +26,7 @@ echo -e "  - Application Gateway for Containers"
 echo -e "  - Virtual Network"
 echo -e "  - Log Analytics Workspace"
 echo -e "  - All associated resources"
-echo -e "${YELLOW}Note: Shared Azure Container Registry is not deleted by this script.${NC}"
+echo -e "${YELLOW}Note: Shared ACR, Azure Monitor workspace, and Grafana are not deleted by this script.${NC}"
 echo
 read -p "Are you sure you want to continue? (yes/no): " -r
 echo

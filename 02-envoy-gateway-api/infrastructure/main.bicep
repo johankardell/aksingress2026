@@ -25,8 +25,14 @@ param userObjectId string
 @description('Name of the shared Azure Container Registry')
 param sharedAcrName string
 
-@description('Resource group that contains the shared Azure Container Registry')
+@description('Resource group that contains shared demo resources, including Azure Container Registry, Azure Monitor workspace, and Azure Managed Grafana')
 param sharedAcrResourceGroupName string = 'rg-aksdemo-shared'
+
+@description('Name of the shared Azure Monitor workspace used by managed Prometheus')
+param sharedAzureMonitorWorkspaceName string = 'aksdemo-amw-${uniqueString(subscription().id, location)}'
+
+@description('Name of the shared Azure Managed Grafana instance')
+param sharedGrafanaName string = 'aksgraf${uniqueString(subscription().id, location)}'
 
 @description('Day of week for AKS auto-upgrade and node OS maintenance windows')
 @allowed([
@@ -62,6 +68,7 @@ param tags object = {
 var aksClusterName = '${baseName}-aks-${uniqueString(resourceGroup().id)}'
 var logAnalyticsName = '${baseName}-logs-${uniqueString(resourceGroup().id)}'
 var nodeResourceGroupName = '${resourceGroup().name}-infra'
+var prometheusCollectorName = 'msprom-${uniqueString(resourceGroup().id)}'
 
 // Log Analytics Workspace
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
@@ -80,6 +87,21 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
   name: sharedAcrName
   scope: resourceGroup(sharedAcrResourceGroupName)
+}
+
+// Shared Azure Monitor workspace and Azure Managed Grafana
+module observability '../../shared/infrastructure/observability.bicep' = {
+  name: 'shared-observability-${baseName}'
+  scope: resourceGroup(sharedAcrResourceGroupName)
+  params: {
+    location: location
+    azureMonitorWorkspaceName: sharedAzureMonitorWorkspaceName
+    grafanaName: sharedGrafanaName
+    userObjectId: userObjectId
+    tags: union(tags, {
+      Shared: 'true'
+    })
+  }
 }
 
 // AKS Cluster with Gateway API enabled
@@ -145,6 +167,17 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
       }
     }
     
+    // Azure Monitor managed Prometheus
+    azureMonitorProfile: {
+      metrics: {
+        enabled: true
+        kubeStateMetrics: {
+          metricAnnotationsAllowList: ''
+          metricLabelsAllowlist: ''
+        }
+      }
+    }
+    
     // Security
     disableLocalAccounts: true
     aadProfile: {
@@ -191,6 +224,66 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
     autoUpgradeProfile: {
       upgradeChannel: 'stable'
     }
+  }
+}
+
+// Data collection for Azure Monitor managed Prometheus
+resource prometheusDataCollectionEndpoint 'Microsoft.Insights/dataCollectionEndpoints@2022-06-01' = {
+  name: prometheusCollectorName
+  location: location
+  kind: 'Linux'
+  tags: tags
+  properties: {
+    networkAcls: {
+      publicNetworkAccess: 'Enabled'
+    }
+  }
+}
+
+resource prometheusDataCollectionRule 'Microsoft.Insights/dataCollectionRules@2022-06-01' = {
+  name: prometheusCollectorName
+  location: location
+  tags: tags
+  properties: {
+    dataCollectionEndpointId: prometheusDataCollectionEndpoint.id
+    dataSources: {
+      prometheusForwarder: [
+        {
+          name: 'PrometheusDataSource'
+          streams: [
+            'Microsoft-PrometheusMetrics'
+          ]
+          labelIncludeFilter: {}
+        }
+      ]
+    }
+    destinations: {
+      monitoringAccounts: [
+        {
+          accountResourceId: observability.outputs.azureMonitorWorkspaceId
+          name: 'MonitoringAccount1'
+        }
+      ]
+    }
+    dataFlows: [
+      {
+        streams: [
+          'Microsoft-PrometheusMetrics'
+        ]
+        destinations: [
+          'MonitoringAccount1'
+        ]
+      }
+    ]
+  }
+}
+
+resource prometheusDataCollectionRuleAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2022-06-01' = {
+  name: prometheusCollectorName
+  scope: aks
+  properties: {
+    dataCollectionRuleId: prometheusDataCollectionRule.id
+    description: 'Routes managed Prometheus metrics from this AKS cluster to the shared Azure Monitor workspace.'
   }
 }
 
@@ -261,5 +354,9 @@ output aksFqdn string = aks.properties.fqdn
 output oidcIssuerUrl string = aks.properties.oidcIssuerProfile.issuerURL
 output acrName string = acr.name
 output acrLoginServer string = acr.properties.loginServer
+output azureMonitorWorkspaceName string = observability.outputs.azureMonitorWorkspaceName
+output azureMonitorWorkspaceId string = observability.outputs.azureMonitorWorkspaceId
+output grafanaName string = observability.outputs.grafanaName
+output grafanaEndpoint string = observability.outputs.grafanaEndpoint
 output resourceGroupName string = resourceGroup().name
 output nodeResourceGroupName string = aks.properties.nodeResourceGroup
