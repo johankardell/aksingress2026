@@ -297,7 +297,7 @@ Show the contrast. With Ingress, the app developer files a PR that touches a clu
    ┌──────────────────────  AKS Cluster  ─────────────────────┐
    │                                                          │
    │  envoy-gateway (control plane, Deployment)               │
-   │      │  watches GatewayClass, Gateway + HTTPRoute        │
+   │      │  watches GatewayClass, Gateway, and HTTPRoute     │
    │      ▼  programs                                          │
    │  Envoy data plane Pods (one Deployment per Gateway)       │
    │      ▲                                                    │
@@ -361,7 +361,7 @@ YAML
 ```
 
 **Speaker notes:**
-Envoy Gateway is the upstream-reference implementation. The current demo installs the stable upstream release from its published `install.yaml`, verifies `GatewayClass/envoy-gateway`, then applies the application `Gateway` and `HTTPRoute` in the default namespace. On AKS, Envoy's Service of type LoadBalancer triggers an Azure SLB and public IP — same north-south model you already use, but routing is portable Gateway API YAML rather than controller-specific annotations. The repository deployment flow is split into infra, image build, and Kubernetes configuration phases so only the final phase touches the active `kubectl` context.
+Envoy Gateway is the upstream-reference implementation. The current demo script applies the stable upstream v1.2.3 `install.yaml`, verifies `GatewayClass/envoy-gateway`, then applies the application `Gateway` and `HTTPRoute` in the default namespace. On AKS, Envoy's Service of type LoadBalancer triggers an Azure SLB and public IP — same north-south model you already use, but routing is portable Gateway API YAML rather than controller-specific annotations. The repository deployment flow is split into infra, image build, and Kubernetes configuration phases so only the final phase touches the active `kubectl` context.
 
 ---
 
@@ -546,7 +546,7 @@ Show this last in the ingress part of the talk. It is what many teams have had i
 - **Enterprise edge features for free**: WAF, mTLS to backend, autoscaled PaaS, Azure Monitor integration
 
 **Speaker notes:**
-This is the slide to land the point of part 2 + part 3: Gateway API is the *contract*, AGC is the *Azure-native implementation*. The demo keeps the `Gateway`, `HTTPRoute`, service, and deployment in `default` for readability, while the AGC infrastructure object lives in `alb-infra` and the controller lives in `azure-alb-system`. In production you can split the Gateway and routes across platform/app namespaces; the API shape still lets teams write portable routing YAML while the platform team chooses Envoy in dev or AGC in production.
+This is the slide to land the point of the Envoy Gateway and AGC demos: Gateway API is the *contract*, AGC is the *Azure-native implementation*. The demo keeps the `Gateway`, `HTTPRoute`, service, and deployment in `default` for readability, while the AGC infrastructure object lives in `alb-infra` and the controller lives in `azure-alb-system`. In production you can split the Gateway and routes across platform/app namespaces; the API shape still lets teams write portable routing YAML while the platform team chooses Envoy in dev or AGC in production.
 
 ---
 
