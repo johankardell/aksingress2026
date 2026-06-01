@@ -538,50 +538,230 @@ curl http://envoy-demo-service/health
 
 ## Migration from Ingress
 
-If migrating from traditional Ingress:
+Gateway API splits the single Ingress resource into role-oriented resources. The
+shared sample app uses the same Deployment and Service shape in both demos; only
+the north-south routing resources change.
 
-```yaml
-# Old: Ingress
+### Concept mapping
+
+| Ingress API | Gateway API | Notes |
+|-------------|-------------|-------|
+| `IngressClass` | `GatewayClass` | Cluster-scoped implementation choice. `nginx` becomes `envoy-gateway` in this demo. |
+| `Ingress.spec.ingressClassName` | `Gateway.spec.gatewayClassName` | The Gateway selects the implementation; routes attach to that Gateway. |
+| `Ingress` listener details | `Gateway` | Hosts, ports, protocols, TLS, and allowed route namespaces move to Gateway listeners. |
+| `Ingress.spec.rules[].http.paths[]` | `HTTPRoute.spec.rules[].matches[]` and `backendRefs[]` | Application teams express path routing in HTTPRoute. |
+| Ingress annotations | Typed Gateway API fields, filters, or implementation-specific policies | Common routing behavior has typed fields; controller-specific features may need Envoy Gateway policy CRDs or may not have a 1:1 equivalent. |
+
+### Class selection
+
+<table>
+<tr>
+<th>IngressClass</th>
+<th>GatewayClass + Gateway selection</th>
+</tr>
+<tr>
+<td>
+<pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx
+spec:
+  controller: k8s.io/ingress-nginx
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+spec:
+  ingressClassName: nginx
+</code></pre>
+</td>
+<td>
+<pre><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gateway
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+spec:
+  gatewayClassName: envoy-gateway
+</code></pre>
+</td>
+</tr>
+</table>
+
+### Basic shared sample app route
+
+<table>
+<tr>
+<th>Ingress</th>
+<th>Gateway API</th>
+</tr>
+<tr>
+<td>
+<pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: nginx-demo-ingress
+  namespace: demo
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
+  ingressClassName: nginx
   rules:
   - http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
           service:
-            name: my-service
-            port: 80
-```
-
-Becomes:
-
-```yaml
-# New: Gateway + HTTPRoute
----
+            name: nginx-demo-service
+            port:
+              number: 80
+</code></pre>
+</td>
+<td>
+<pre><code class="language-yaml">apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
+metadata:
+  name: envoy-demo-gateway
+  namespace: demo
 spec:
   gatewayClassName: envoy-gateway
   listeners:
   - name: http
-    port: 80
     protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: Same
 ---
+apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
+metadata:
+  name: envoy-demo-route
+  namespace: demo
 spec:
   parentRefs:
-  - name: my-gateway
+  - name: envoy-demo-gateway
   rules:
   - matches:
     - path:
+        type: PathPrefix
         value: /
     backendRefs:
-    - name: my-service
+    - name: envoy-demo-service
       port: 80
-```
+</code></pre>
+</td>
+</tr>
+</table>
+
+### Equivalent path routing examples
+
+<table>
+<tr>
+<th>Ingress paths</th>
+<th>HTTPRoute rules</th>
+</tr>
+<tr>
+<td>
+<pre><code class="language-yaml">rules:
+- host: demo.example.com
+  http:
+    paths:
+    - path: /
+      pathType: Prefix
+      backend:
+        service:
+          name: web
+          port:
+            number: 80
+    - path: /api
+      pathType: Prefix
+      backend:
+        service:
+          name: api
+          port:
+            number: 80
+    - path: /health
+      pathType: Exact
+      backend:
+        service:
+          name: web
+          port:
+            number: 80
+</code></pre>
+</td>
+<td>
+<pre><code class="language-yaml">hostnames:
+- demo.example.com
+rules:
+- matches:
+  - path:
+      type: PathPrefix
+      value: /
+  backendRefs:
+  - name: web
+    port: 80
+- matches:
+  - path:
+      type: PathPrefix
+      value: /api
+  backendRefs:
+  - name: api
+    port: 80
+- matches:
+  - path:
+      type: Exact
+      value: /health
+  backendRefs:
+  - name: web
+    port: 80
+</code></pre>
+</td>
+</tr>
+</table>
+
+Gateway API path matches are explicit (`PathPrefix`, `Exact`, or
+`RegularExpression` when supported). Route precedence is determined by match
+specificity, not declaration order, but you should still verify behavior when
+migrating an Ingress.
+
+### Annotation translation notes
+
+| NGINX Ingress annotation | Gateway API migration guidance |
+|--------------------------|--------------------------------|
+| `nginx.ingress.kubernetes.io/rewrite-target` | Use an `HTTPRoute` `URLRewrite` filter when the Gateway implementation supports it. The sample app does not require a rewrite for `/`, `/health`, or `/api/info`. |
+| `nginx.ingress.kubernetes.io/ssl-redirect` | No direct annotation equivalent. Configure HTTPS listeners and, when needed, an HTTP-to-HTTPS redirect with an `HTTPRoute` `RequestRedirect` filter. |
+| `nginx.ingress.kubernetes.io/backend-protocol` | Usually becomes typed backend configuration or implementation policy. Plain HTTP backends like this sample app only need `backendRefs[].port`. |
+| `cert-manager.io/*` | Certificate automation remains outside core Gateway API. Use cert-manager Gateway support or your platform certificate workflow. |
+| Controller tuning annotations such as timeouts, buffers, and WAF | These do not translate cleanly to core Gateway API. Check Envoy Gateway policy CRDs or move Azure-specific edge controls to Application Gateway for Containers. |
+
+### Migration exercise
+
+1. Deploy the NGINX demo and confirm the shared sample app responds at `/`,
+   `/health`, and `/api/info`.
+2. Open `../01-nginx-ingress/kubernetes/ingress.yaml` and identify the
+   `ingressClassName`, annotations, path match, backend Service name, and port.
+3. In this demo, compare those fields with `kubernetes/gateway.yaml` and
+   `kubernetes/httproute.yaml`. Notice that the class and listener move to the
+   Gateway, while the path match and backend move to the HTTPRoute.
+4. Apply the Gateway API resources and retest the same paths against the Gateway
+   public address:
+
+   ```bash
+   kubectl apply -f kubernetes/gateway.yaml
+   kubectl apply -f kubernetes/httproute.yaml
+   kubectl get gateway -n demo envoy-demo-gateway
+   kubectl get httproute -n demo envoy-demo-route
+   ```
+
+5. Optional: add an `/api` `PathPrefix` route to `httproute.yaml` that points to
+   the same sample app Service, apply it, and verify `/api/info` still returns
+   the sample app metadata.
 
 ## Observability
 
