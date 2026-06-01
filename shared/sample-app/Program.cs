@@ -11,6 +11,10 @@ const string RequestIdItemKey = "RequestId";
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHealthChecks();
+builder.Services.AddHttpClient("downstream", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
 
 var app = builder.Build();
 
@@ -48,19 +52,25 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.MapGet("/", (HttpContext context) =>
+app.MapGet("/", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
 {
-    var demoName = Environment.GetEnvironmentVariable("DEMO_NAME") ?? "AKS Ingress Demo";
-    var demoType = Environment.GetEnvironmentVariable("DEMO_TYPE") ?? "Unknown";
-    var hostname = Environment.GetEnvironmentVariable("HOSTNAME") ?? "unknown-pod";
-    var version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0";
-    var requestInfo = CreateRequestInspector(context);
+    var serviceInfo = CreateServiceInfo(context);
+    var downstreamResult = await CallDownstreamAsync(context, httpClientFactory, logger);
+    var requestInfo = serviceInfo.Request;
     var selectedHeaderRows = requestInfo.SelectedHeaders.Count == 0
         ? @"<div class=""info-item""><span class=""empty"">No selected ingress or gateway headers were present.</span></div>"
         : string.Join(Environment.NewLine, requestInfo.SelectedHeaders.Select(header => $@"
             <div class=""info-item"">
                 <span class=""label"">{Display(header.Key)}:</span> {Display(header.Value)}
             </div>"));
+    var downstreamHtml = downstreamResult is null
+        ? @"<div class=""info-item""><span class=""empty"">No downstream service configured for this role.</span></div>"
+        : $@"
+            <div class=""info-item""><span class=""label"">Target:</span> {Display(downstreamResult.TargetUrl)}</div>
+            <div class=""info-item""><span class=""label"">Status:</span> {Display(downstreamResult.Success ? "Success" : "Failed")}</div>
+            <div class=""info-item""><span class=""label"">HTTP Status:</span> {Display(downstreamResult.StatusCode?.ToString())}</div>
+            <div class=""info-item""><span class=""label"">Elapsed:</span> {downstreamResult.ElapsedMilliseconds} ms</div>
+            <pre>{Display(downstreamResult.Body)}</pre>";
 
     var html = $@"
 <!DOCTYPE html>
@@ -68,7 +78,7 @@ app.MapGet("/", (HttpContext context) =>
 <head>
     <meta charset=""UTF-8"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>{Display(demoName)}</title>
+    <title>{Display(serviceInfo.DemoName)}</title>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -124,25 +134,54 @@ app.MapGet("/", (HttpContext context) =>
             font-size: 4em;
             margin-bottom: 20px;
         }}
+        .button {{
+            display: inline-block;
+            margin-top: 10px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            color: #2d2d2d;
+            background: #ffd700;
+            text-decoration: none;
+            font-weight: 700;
+        }}
+        pre {{
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            padding: 12px;
+            overflow-x: auto;
+        }}
     </style>
 </head>
 <body>
     <div class=""container"">
         <div class=""logo"">🚀</div>
-        <h1>{Display(demoName)}</h1>
+        <h1>{Display(serviceInfo.DemoName)}</h1>
         <div class=""info"">
             <div class=""info-item"">
-                <span class=""label"">Demo Type:</span> {Display(demoType)}
+                <span class=""label"">Service:</span> {Display(serviceInfo.ServiceName)}
             </div>
             <div class=""info-item"">
-                <span class=""label"">Pod Name:</span> {Display(hostname)}
+                <span class=""label"">Demo Type:</span> {Display(serviceInfo.DemoType)}
             </div>
             <div class=""info-item"">
-                <span class=""label"">Version:</span> {Display(version)}
+                <span class=""label"">Pod Name:</span> {Display(serviceInfo.Hostname)}
+            </div>
+            <div class=""info-item"">
+                <span class=""label"">Version:</span> {Display(serviceInfo.Version)}
+            </div>
+            <div class=""info-item"">
+                <span class=""label"">Request ID:</span> {Display(serviceInfo.RequestId)}
             </div>
             <div class=""info-item"">
                 <span class=""label"">Status:</span> ✅ Running on Azure Kubernetes Service
             </div>
+        </div>
+        <div class=""info"">
+            <h2>Mesh Traffic</h2>
+            {downstreamHtml}
+            <a class=""button"" href=""/api/call"">Generate mesh traffic</a>
         </div>
         <div class=""info"">
             <h2>Request Inspector</h2>
@@ -186,25 +225,116 @@ app.MapHealthChecks("/health");
 app.MapHealthChecks("/health/live");
 app.MapHealthChecks("/health/ready");
 
-app.MapGet("/api/info", (HttpContext context) =>
+app.MapGet("/api/info", (HttpContext context) => Results.Json(CreateServiceInfo(context)));
+app.MapGet("/api/call", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
 {
-    return new
+    var serviceInfo = CreateServiceInfo(context);
+    var downstream = await CallDownstreamAsync(context, httpClientFactory, logger);
+
+    return Results.Json(new
     {
-        DemoName = Environment.GetEnvironmentVariable("DEMO_NAME") ?? "AKS Ingress Demo",
-        DemoType = Environment.GetEnvironmentVariable("DEMO_TYPE") ?? "Unknown",
-        Hostname = Environment.GetEnvironmentVariable("HOSTNAME") ?? "unknown-pod",
-        Version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0",
-        RequestId = context.Items[RequestIdItemKey] as string ?? context.TraceIdentifier,
-        Status = "Running",
-        Request = CreateRequestInspector(context)
-    };
+        Service = serviceInfo,
+        Downstream = downstream
+    });
+});
+app.MapGet("/api/orders", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
+{
+    var serviceInfo = CreateServiceInfo(context);
+    var downstream = await CallDownstreamAsync(context, httpClientFactory, logger);
+
+    return Results.Json(new
+    {
+        Service = serviceInfo,
+        Downstream = downstream
+    });
 });
 
 logger.LogInformation("Starting AKS Ingress Demo Application");
+logger.LogInformation("Service Name: {ServiceName}", Environment.GetEnvironmentVariable("SERVICE_NAME") ?? "Not Set");
 logger.LogInformation("Demo Name: {DemoName}", Environment.GetEnvironmentVariable("DEMO_NAME") ?? "Not Set");
 logger.LogInformation("Demo Type: {DemoType}", Environment.GetEnvironmentVariable("DEMO_TYPE") ?? "Not Set");
+logger.LogInformation("Downstream URL: {DownstreamUrl}", Environment.GetEnvironmentVariable("DOWNSTREAM_URL") ?? "Not Set");
 
 app.Run();
+
+static ServiceInfo CreateServiceInfo(HttpContext context)
+{
+    var demoName = Environment.GetEnvironmentVariable("DEMO_NAME") ?? "AKS Ingress Demo";
+    var demoType = Environment.GetEnvironmentVariable("DEMO_TYPE") ?? "Unknown";
+    var serviceName = Environment.GetEnvironmentVariable("SERVICE_NAME") ?? demoName;
+    var hostname = Environment.GetEnvironmentVariable("HOSTNAME") ?? "unknown-pod";
+    var version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0";
+    var downstreamUrl = Environment.GetEnvironmentVariable("DOWNSTREAM_URL") ?? string.Empty;
+
+    return new ServiceInfo(
+        serviceName,
+        demoName,
+        demoType,
+        hostname,
+        version,
+        context.Items[RequestIdItemKey] as string ?? context.TraceIdentifier,
+        string.IsNullOrWhiteSpace(downstreamUrl) ? null : downstreamUrl,
+        "Running",
+        CreateRequestInspector(context));
+}
+
+static async Task<DownstreamCall?> CallDownstreamAsync(HttpContext context, IHttpClientFactory httpClientFactory, ILogger logger)
+{
+    var downstreamUrl = Environment.GetEnvironmentVariable("DOWNSTREAM_URL");
+    if (string.IsNullOrWhiteSpace(downstreamUrl))
+    {
+        return null;
+    }
+
+    if (!Uri.TryCreate(downstreamUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+    {
+        return new DownstreamCall(
+            Environment.GetEnvironmentVariable("DOWNSTREAM_LABEL") ?? "downstream",
+            downstreamUrl,
+            false,
+            null,
+            0,
+            "DOWNSTREAM_URL must be an absolute HTTP or HTTPS URL.");
+    }
+
+    var started = DateTimeOffset.UtcNow;
+    var requestId = context.Items[RequestIdItemKey] as string ?? context.TraceIdentifier;
+    var client = httpClientFactory.CreateClient("downstream");
+    using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+    request.Headers.TryAddWithoutValidation(RequestIdHeader, requestId);
+    request.Headers.TryAddWithoutValidation("X-Forwarded-Host", context.Request.Host.Value);
+    request.Headers.TryAddWithoutValidation("X-Forwarded-Proto", context.Request.Scheme);
+    request.Headers.TryAddWithoutValidation("X-Source-Service", Environment.GetEnvironmentVariable("SERVICE_NAME") ?? "sample-app");
+
+    try
+    {
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
+        var body = await response.Content.ReadAsStringAsync(context.RequestAborted);
+        if (body.Length > 2_000)
+        {
+            body = body[..2_000] + "...";
+        }
+
+        return new DownstreamCall(
+            Environment.GetEnvironmentVariable("DOWNSTREAM_LABEL") ?? uri.Host,
+            uri.ToString(),
+            response.IsSuccessStatusCode,
+            (int)response.StatusCode,
+            (long)(DateTimeOffset.UtcNow - started).TotalMilliseconds,
+            body);
+    }
+    catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+    {
+        logger.LogWarning(ex, "Downstream call to {DownstreamUrl} failed", uri);
+        return new DownstreamCall(
+            Environment.GetEnvironmentVariable("DOWNSTREAM_LABEL") ?? uri.Host,
+            uri.ToString(),
+            false,
+            null,
+            (long)(DateTimeOffset.UtcNow - started).TotalMilliseconds,
+            ex.Message);
+    }
+}
 
 static RequestInspector CreateRequestInspector(HttpContext context)
 {
@@ -234,6 +364,7 @@ static IReadOnlyDictionary<string, string> GetSelectedHeaders(IHeaderDictionary 
         "X-Real-IP",
         "X-Request-Id",
         "X-Correlation-Id",
+        "X-Source-Service",
         "X-Envoy-External-Address",
         "X-Envoy-Original-Path",
         "X-Envoy-Expected-Rq-Timeout-Ms",
@@ -281,6 +412,25 @@ static string Display(string? value)
 {
     return WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(value) ? "—" : value);
 }
+
+record ServiceInfo(
+    string ServiceName,
+    string DemoName,
+    string DemoType,
+    string Hostname,
+    string Version,
+    string RequestId,
+    string? DownstreamUrl,
+    string Status,
+    RequestInspector Request);
+
+record DownstreamCall(
+    string Label,
+    string TargetUrl,
+    bool Success,
+    int? StatusCode,
+    long ElapsedMilliseconds,
+    string Body);
 
 record RequestInspector(
     string Host,

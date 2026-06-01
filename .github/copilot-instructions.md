@@ -2,17 +2,18 @@
 
 ## Project Overview
 
-This repository contains three independent AKS ingress/gateway demos:
+This repository contains four independent AKS ingress/gateway/service networking demos:
 
 1. **Demo 01**: NGINX Ingress Controller - traditional Kubernetes Ingress pattern for comparison and migration education.
 2. **Demo 02**: Gateway API with Envoy - modern, vendor-neutral Gateway API implementation.
 3. **Demo 03**: AGC - Azure-native Gateway API implementation.
+4. **Demo 04**: Managed Istio Ambient Mesh - Azure Kubernetes Application Network preview with Gateway API ingress, waypoint telemetry, Prometheus, and Kiali.
 
-Each demo is self-contained with its own Bicep infrastructure, Kubernetes manifests, Bash automation, cleanup script, and documentation. All demos share the sample application in `shared/sample-app/`.
+Each demo is self-contained with its own Bicep infrastructure, Kubernetes manifests, Bash automation, cleanup script, and documentation. All demos share the sample application in `shared/sample-app/`; Demo 04 runs it as `frontend`, `orders`, and `inventory` with environment-driven downstream calls.
 
 ## Verified Azure Configuration
 
-- **Region**: `swedencentral` for all Azure resources.
+- **Region**: `swedencentral` for Demos 01-03. Demo 04 intentionally uses `northeurope` for Azure Kubernetes Application Network preview availability.
 - **AKS Kubernetes version**: `1.35.4`, latest non-preview supported patch verified in Sweden Central as of May 2026. Do not use preview AKS versions unless explicitly requested.
 - **VM SKU**: `Standard_B4as_v2`, 4 vCPU / 16 GiB, AMD64/x64 burstable B-series v2.
 - **AKS SKU**: Free tier:
@@ -26,7 +27,8 @@ Each demo is self-contained with its own Bicep infrastructure, Kubernetes manife
   - Demo 01: `rg-01-nginx-ingress-demo`
   - Demo 02: `rg-02-envoy-gateway-demo`
   - Demo 03: `rg-03-agc-containers-demo`
-- **AKS-managed infrastructure resource group**: use the demo resource group name with `-infra` suffix, e.g. `rg-02-envoy-gateway-demo-infra`.
+  - Demo 04: `rg-04-istio-ambient-demo`
+- **AKS-managed infrastructure resource group**: use the demo resource group name with `-infra` suffix, e.g. `rg-02-envoy-gateway-demo-infra`; Demo 04 uses `rg-04-istio-ambient-demo-infra`.
 
 ## Repository Structure
 
@@ -46,7 +48,11 @@ aksingress2026/
 │   ├── infrastructure/
 │   ├── kubernetes/
 │   └── scripts/
-└── 03-agc-for-containers/
+├── 03-agc-for-containers/
+│   ├── infrastructure/
+│   ├── kubernetes/
+│   └── scripts/
+└── 04-managed-istio-ambient/
     ├── infrastructure/
     ├── kubernetes/
     └── scripts/
@@ -55,14 +61,14 @@ aksingress2026/
 ## Infrastructure Rules
 
 - Use **Bicep** for Azure infrastructure. Do not introduce Terraform or hand-written ARM templates.
-- Keep configuration consistent across all three demos unless the user asks for a demo-specific change.
+- Keep configuration consistent across demos unless the user asks for a demo-specific change. Demo 04 is an approved exception for preview Application Network and North Europe.
 - Parameterize location, Kubernetes version, VM size, and node count.
 - Keep `.bicepparam` files updated with shared defaults.
 - Generated ARM JSON files in demo `infrastructure/` folders are ignored by `.gitignore`; edit Bicep sources, not generated JSON.
 - Use managed identities and role assignments; never use service principals with secrets.
 - Keep Azure Container Registry admin user disabled.
 - Include `Environment`, `Demo`, and `ManagedBy` tags on Azure resources.
-- Before changing Azure versions or SKUs, verify Sweden Central availability:
+- Before changing Azure versions or SKUs, verify Sweden Central availability for Demos 01-03 and North Europe preview availability for Demo 04:
   ```bash
   az aks get-versions --location swedencentral --output table
   az vm list-skus --location swedencentral --size <SKU> --all --output table
@@ -94,7 +100,8 @@ aksingress2026/
   - `/`
   - `/health`
   - `/api/info`
-- Keep demo-specific display text configurable with environment variables in the Kubernetes manifests.
+  - `/api/call` and `/api/orders` for optional downstream mesh calls
+- Keep demo-specific display text and downstream call targets configurable with environment variables in the Kubernetes manifests.
 
 ## Kubernetes Manifest Rules
 
@@ -102,8 +109,8 @@ aksingress2026/
 - Include resource requests and limits.
 - Include liveness and readiness probes for the app.
 - Use `imagePullPolicy: Always` for demo deployments.
-- Application resources live in the `default` namespace unless a demo explicitly requires otherwise.
-- Demo 02 and Demo 03 use Gateway API `v1` resources (`Gateway`, `HTTPRoute`).
+- Application resources live in the `default` or `demo` namespace unless a demo explicitly requires otherwise; Demo 04 uses `mesh-demo` with ambient labels.
+- Demo 02, Demo 03, and Demo 04 use Gateway API `v1` resources (`Gateway`, `HTTPRoute`).
 
 ## Automation Script Rules
 
@@ -136,6 +143,15 @@ aksingress2026/
 - Ensure `ApplicationLoadBalancer` is created before Gateway and HTTPRoute resources.
 - Highlight Azure-native integration, WAF-readiness, and Azure Monitor integration.
 
+### Demo 04: Managed Istio Ambient Mesh
+
+- Use Azure Kubernetes Application Network preview in `northeurope`; do not switch this demo to the classic AKS Istio add-on.
+- Keep the AKS cluster on Azure CNI Overlay with Cilium dataplane/policy where supported.
+- Use namespace label `istio.io/dataplane-mode=ambient` and a waypoint `Gateway` for L7 telemetry.
+- Use Gateway API for ingress and normal Kubernetes service DNS for `frontend` → `orders` → `inventory` traffic.
+- Install or document in-cluster Prometheus and Kiali for workshop traffic visualization.
+- Scripts should validate AppNet membership, Gateway/HTTPRoute status, ambient CRDs/ztunnel where available, and Kiali readiness.
+
 ## Documentation Rules
 
 - Keep README files professional and public-repo ready.
@@ -158,10 +174,11 @@ Before finishing changes:
   az bicep build --file 01-nginx-ingress/infrastructure/main.bicep
   az bicep build --file 02-envoy-gateway-api/infrastructure/main.bicep
   az bicep build --file 03-agc-for-containers/infrastructure/main.bicep
+   az bicep build --file 04-managed-istio-ambient/infrastructure/main.bicep
   ```
 - Run shell syntax checks for changed scripts:
   ```bash
-  bash -n 01-nginx-ingress/scripts/deploy.sh 02-envoy-gateway-api/scripts/deploy.sh 03-agc-for-containers/scripts/deploy.sh
+  bash -n 01-nginx-ingress/scripts/deploy.sh 02-envoy-gateway-api/scripts/deploy.sh 03-agc-for-containers/scripts/deploy.sh 04-managed-istio-ambient/scripts/*.sh
   ```
 - For sample app changes, run:
   ```bash
@@ -173,7 +190,7 @@ Before finishing changes:
 
 - Do not commit secrets, kubeconfigs, tokens, credentials, or personal tenant identifiers.
 - Do not require local Docker for deployment scripts.
-- Do not use preview/beta Azure or Kubernetes features without explicit user approval.
-- Do not change the Azure region away from Sweden Central without verifying availability and updating docs.
+- Do not use preview/beta Azure or Kubernetes features without explicit user approval. Demo 04 has explicit approval for Azure Kubernetes Application Network preview.
+- Do not change Demos 01-03 away from Sweden Central without verifying availability and updating docs. Demo 04 must remain in a supported Application Network preview region unless docs/scripts are updated.
 - Do not hand-edit generated ARM JSON as the source of truth.
 - Do not remove cleanup scripts.
