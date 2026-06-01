@@ -135,6 +135,8 @@ param userObjectId = '<your-object-id>' // <-- Replace with your Object ID for m
    cd ../03-agc-for-containers && ./scripts/cleanup.sh
    ```
 
+   The cleanup scripts keep the shared ACR in `rg-aksdemo-shared`; delete that resource group only after all demos are removed.
+
 4. **Redeploy with new configuration:**
    ```bash
    cd 01-nginx-ingress && ./scripts/deploy.sh
@@ -147,12 +149,19 @@ param userObjectId = '<your-object-id>' // <-- Replace with your Object ID for m
 You can update existing clusters without deleting them:
 
 ```bash
-# For each demo, run:
+# For each demo, run from its infrastructure folder and pass the shared ACR parameters:
 cd 01-nginx-ingress/infrastructure
+source ../../shared/scripts/acr-image.sh
+ACR_NAME=$(ensure_shared_acr)
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create \
   --resource-group rg-01-nginx-ingress-demo \
+  --name nginx-demo-deployment \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId="$USER_OBJECT_ID" \
+  --parameters sharedAcrName="$ACR_NAME" \
+  --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP"
 ```
 
 **Note:** Enabling Azure RBAC on an existing cluster may cause a brief interruption.

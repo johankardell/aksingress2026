@@ -239,7 +239,7 @@ Application-level resource that defines routing logic.
 - Azure CLI (`az`) version 2.50.0+
 - kubectl version 1.27+
 - Helm version 3.12+
-- No local Docker installation required; images are built remotely with Azure Container Registry Tasks
+- No local Docker installation required; the shared image is built remotely with Azure Container Registry Tasks
 - Active Azure subscription with permissions to create resources
 
 ## Deployment
@@ -252,8 +252,8 @@ Application-level resource that defines routing logic.
 ```
 
 The script runs the three focused deployment phases in sequence:
-1. `./scripts/deploy-infra.sh` creates/registers Azure resources and deploys AKS/ACR via Bicep. This phase does not use `kubectl` and can be run in parallel with other demos.
-2. `./scripts/build-image.sh` builds and pushes the sample app image with Azure Container Registry Tasks after infrastructure exists.
+1. `./scripts/deploy-infra.sh` creates/registers Azure resources and deploys AKS via Bicep, creates/reuses the shared ACR in `rg-aksdemo-shared`, and grants AKS pull access. This phase does not use `kubectl` and can be run in parallel with other demos.
+2. `./scripts/build-image.sh` builds the shared sample app image with Azure Container Registry Tasks only if the source-content tag is missing.
 3. `./scripts/configure-kubernetes.sh` gets AKS credentials, installs Envoy Gateway, deploys Gateway/HTTPRoute/application resources, and displays the public URL. This is the only phase that changes or relies on the active `kubectl` context.
 
 You can also run the phases independently:
@@ -266,6 +266,8 @@ You can also run the phases independently:
 
 **Estimated time**: 8-12 minutes
 
+The shared ACR lives in `rg-aksdemo-shared`. Set `SHARED_ACR_NAME` to reuse a specific registry name; otherwise the scripts derive one from the subscription. The shared ACR is intentionally not deleted by a single demo cleanup script.
+
 ### Option 2: Manual Deployment
 
 #### Step 1: Deploy Infrastructure
@@ -276,13 +278,19 @@ az group create \
   --name rg-02-envoy-gateway-demo \
   --location swedencentral
 
-# Deploy Bicep template
+# Deploy Bicep template and reference the shared ACR
 cd infrastructure
+source ../../shared/scripts/acr-image.sh
+ACR_NAME=$(ensure_shared_acr)
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create \
   --resource-group rg-02-envoy-gateway-demo \
   --name envoy-demo-deployment \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId="$USER_OBJECT_ID" \
+  --parameters sharedAcrName="$ACR_NAME" \
+  --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP"
 ```
 
 #### Step 2: Get Credentials
@@ -302,19 +310,19 @@ az aks get-credentials \
   --overwrite-existing
 ```
 
-#### Step 3: Build and Push Image with ACR Tasks
+#### Step 3: Build Shared Image with ACR Tasks
 
 ```bash
-# Get ACR name
+# Get shared ACR name
 ACR_NAME=$(az deployment group show \
   --resource-group rg-02-envoy-gateway-demo \
   --name envoy-demo-deployment \
   --query properties.outputs.acrName.value \
   --output tsv)
 
-# Build and push remotely only if the source-content tag is missing
-source ../shared/scripts/acr-image.sh
-ensure_sample_app_image "$ACR_NAME" "../shared/sample-app" "aks-ingress-demo"
+# Build remotely only if the source-content tag is missing
+source ../../shared/scripts/acr-image.sh
+ensure_sample_app_image "$ACR_NAME" "../../shared/sample-app" "aks-ingress-demo"
 ```
 
 #### Step 4: Install Envoy Gateway
@@ -343,10 +351,10 @@ envoy-gateway    gateway.envoyproxy.io/gatewayclass-controller   1m
 #### Step 6: Deploy Application
 
 ```bash
-cd ../02-envoy-gateway-api/kubernetes
+cd ../kubernetes
 
 # Get ACR login server
-ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
+ACR_LOGIN_SERVER=$(az acr show --resource-group rg-aksdemo-shared --name "$ACR_NAME" --query loginServer --output tsv)
 
 # Deploy application
 sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
@@ -571,6 +579,13 @@ spec:
 
 ## Clean Up
 
+Demo cleanup scripts leave the shared ACR in `rg-aksdemo-shared` so another demo can continue pulling the shared image. After all demos are removed, delete the shared registry resource group manually if you no longer need it:
+
+```bash
+az group delete --name rg-aksdemo-shared --yes --no-wait
+```
+
+
 ### Using the Cleanup Script
 
 ```bash
@@ -594,7 +609,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 | Resource | Cost |
 |----------|------|
 | AKS Cluster (2 nodes) | ~$140 |
-| Azure Container Registry | ~$20 |
+| Shared Azure Container Registry | ~$20 total |
 | Load Balancer | ~$20 |
 | Public IP Address | ~$4 |
 | Log Analytics | ~$5 |

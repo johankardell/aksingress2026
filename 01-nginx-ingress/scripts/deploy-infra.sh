@@ -15,12 +15,16 @@ echo
 
 RESOURCE_GROUP="rg-01-nginx-ingress-demo"
 LOCATION="swedencentral"
+ACR_PULL_ROLE_ID="7f951dda-4ed3-4680-a7ca-43fe172d538d"
 DEPLOYMENT_NAME="nginx-demo-deployment"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+source "$REPO_ROOT/shared/scripts/acr-image.sh"
+source "$REPO_ROOT/shared/scripts/role-assignment.sh"
 
 command -v az >/dev/null 2>&1 || { echo -e "${RED}Azure CLI is required but not installed.${NC}" >&2; exit 1; }
 
-echo -e "${YELLOW}[1/4] Registering Azure resource providers...${NC}"
+echo -e "${YELLOW}[1/5] Registering Azure resource providers...${NC}"
 echo "Registering Microsoft.ContainerService..."
 az provider register --namespace Microsoft.ContainerService --wait 2>/dev/null || echo "Already registered"
 echo "Registering Microsoft.OperationsManagement..."
@@ -30,12 +34,17 @@ az provider register --namespace Microsoft.ContainerRegistry --wait 2>/dev/null 
 echo -e "${GREEN}✓ Resource providers registered${NC}"
 echo
 
-echo -e "${YELLOW}[2/4] Creating resource group...${NC}"
+echo -e "${YELLOW}[2/5] Creating resource group...${NC}"
 az group create   --name $RESOURCE_GROUP   --location $LOCATION   --output table
 echo -e "${GREEN}✓ Resource group created${NC}"
 echo
 
-echo -e "${YELLOW}[3/4] Getting user information for RBAC...${NC}"
+echo -e "${YELLOW}[3/5] Ensuring shared Azure Container Registry...${NC}"
+ACR_NAME=$(ensure_shared_acr)
+echo -e "${GREEN}✓ Shared ACR: ${ACR_NAME} (${SHARED_ACR_RESOURCE_GROUP})${NC}"
+echo
+
+echo -e "${YELLOW}[4/5] Getting user information for RBAC...${NC}"
 USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
 if [ -z "$USER_OBJECT_ID" ]; then
   echo -e "${RED}Failed to retrieve signed-in user Object ID.${NC}" >&2
@@ -96,7 +105,7 @@ cleanup_conflicting_role_assignments() {
 
   local aks_name acr_name aks_id acr_id kubelet_object_id
   aks_name=$(az aks list --resource-group "$RESOURCE_GROUP" --query "[0].name" --output tsv 2>/dev/null || true)
-  acr_name=$(az acr list --resource-group "$RESOURCE_GROUP" --query "[0].name" --output tsv 2>/dev/null || true)
+  acr_name=$(get_shared_acr_name)
 
   if [ -n "$aks_name" ]; then
     aks_id=$(az aks show --resource-group "$RESOURCE_GROUP" --name "$aks_name" --query id --output tsv 2>/dev/null || true)
@@ -104,7 +113,10 @@ cleanup_conflicting_role_assignments() {
   fi
 
   if [ -n "$acr_name" ]; then
-    acr_id=$(az acr show --resource-group "$RESOURCE_GROUP" --name "$acr_name" --query id --output tsv 2>/dev/null || true)
+    acr_id=$(az acr show --resource-group "$SHARED_ACR_RESOURCE_GROUP" --name "$acr_name" --query id --output tsv 2>/dev/null || true)
+    if [ -z "$acr_id" ]; then
+      echo "Shared ACR $acr_name was not found in $SHARED_ACR_RESOURCE_GROUP; skipping ACR role cleanup."
+    fi
   fi
 
   delete_role_assignments_by_role "AcrPull" "$acr_id"
@@ -112,11 +124,21 @@ cleanup_conflicting_role_assignments() {
   delete_role_assignments "$USER_OBJECT_ID" "Azure Kubernetes Service RBAC Cluster Admin" "$aks_id"
 }
 
+
+
 deploy_infrastructure() {
   local output_file
   output_file=$(mktemp)
 
-  if az deployment group create     --resource-group $RESOURCE_GROUP     --name $DEPLOYMENT_NAME     --template-file main.bicep     --parameters main.bicepparam     --parameters userObjectId="$USER_OBJECT_ID"     --output table 2>&1 | tee "$output_file"; then
+  if az deployment group create \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$DEPLOYMENT_NAME" \
+    --template-file main.bicep \
+    --parameters main.bicepparam \
+    --parameters userObjectId="$USER_OBJECT_ID" \
+    --parameters sharedAcrName="$ACR_NAME" \
+    --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP" \
+    --output table 2>&1 | tee "$output_file"; then
     rm -f "$output_file"
     return
   fi
@@ -124,14 +146,22 @@ deploy_infrastructure() {
   if grep -Eq "RoleAssignmentExists|RoleAssignmentUpdateNotPermitted" "$output_file"; then
     cleanup_conflicting_role_assignments
     rm -f "$output_file"
-    az deployment group create       --resource-group $RESOURCE_GROUP       --name $DEPLOYMENT_NAME       --template-file main.bicep       --parameters main.bicepparam       --parameters userObjectId="$USER_OBJECT_ID"       --output table
+    az deployment group create \
+      --resource-group "$RESOURCE_GROUP" \
+      --name "$DEPLOYMENT_NAME" \
+      --template-file main.bicep \
+      --parameters main.bicepparam \
+      --parameters userObjectId="$USER_OBJECT_ID" \
+      --parameters sharedAcrName="$ACR_NAME" \
+      --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP" \
+      --output table
   else
     rm -f "$output_file"
     return 1
   fi
 }
 
-echo -e "${YELLOW}[4/4] Deploying infrastructure (this may take 5-10 minutes)...${NC}"
+echo -e "${YELLOW}[5/5] Deploying infrastructure (this may take 5-10 minutes)...${NC}"
 cd "$SCRIPT_DIR/../infrastructure"
 deploy_infrastructure
 
@@ -139,7 +169,13 @@ AKS_NAME=$(az deployment group show   --resource-group $RESOURCE_GROUP   --name 
 
 ACR_NAME=$(az deployment group show   --resource-group $RESOURCE_GROUP   --name $DEPLOYMENT_NAME   --query properties.outputs.acrName.value   --output tsv)
 
+KUBELET_OBJECT_ID=$(az aks show --resource-group "$RESOURCE_GROUP" --name "$AKS_NAME" --query identityProfile.kubeletidentity.objectId --output tsv)
+ACR_ID=$(az acr show --resource-group "$SHARED_ACR_RESOURCE_GROUP" --name "$ACR_NAME" --query id --output tsv)
+
+echo -e "${YELLOW}Assigning AKS pull permission on shared ACR...${NC}"
+ensure_role_assignment "$KUBELET_OBJECT_ID" "ServicePrincipal" "$ACR_PULL_ROLE_ID" "$ACR_ID" "AcrPull on shared ACR"
+
 echo -e "${GREEN}✓ Infrastructure deployed${NC}"
 echo -e "  AKS Cluster: ${AKS_NAME}"
-echo -e "  ACR: ${ACR_NAME}"
+echo -e "  Shared ACR: ${ACR_NAME} (${SHARED_ACR_RESOURCE_GROUP})"
 echo
