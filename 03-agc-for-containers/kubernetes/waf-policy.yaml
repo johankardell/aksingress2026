@@ -2,7 +2,7 @@ apiVersion: alb.networking.azure.io/v1
 kind: WebApplicationFirewallPolicy
 metadata:
   name: agc-demo-waf-policy
-  namespace: default
+  namespace: demo
   labels:
     demo: agc-containers
 spec:
@@ -10,6 +10,6 @@ spec:
     group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: agc-demo-route
-    namespace: default
+    namespace: demo
   webApplicationFirewall:
     id: ${WAF_POLICY_ID}

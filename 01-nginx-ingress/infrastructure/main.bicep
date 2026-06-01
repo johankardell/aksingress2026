@@ -22,6 +22,35 @@ param systemNodeCount int = 2
 @description('Azure AD user object ID for RBAC admin access')
 param userObjectId string
 
+@description('Name of the shared Azure Container Registry')
+param sharedAcrName string
+
+@description('Resource group that contains the shared Azure Container Registry')
+param sharedAcrResourceGroupName string = 'rg-aksdemo-shared'
+
+@description('Day of week for AKS auto-upgrade and node OS maintenance windows')
+@allowed([
+  'Monday'
+  'Tuesday'
+  'Wednesday'
+  'Thursday'
+  'Friday'
+  'Saturday'
+  'Sunday'
+])
+param maintenanceDayOfWeek string = 'Sunday'
+
+@description('Start time for AKS maintenance windows in HH:mm using the configured UTC offset, for example 02:00')
+param maintenanceStartTime string = '02:00'
+
+@description('Duration in hours for AKS maintenance windows')
+@minValue(4)
+@maxValue(24)
+param maintenanceDurationHours int = 4
+
+@description('Fixed UTC offset for AKS maintenance windows. +01:00 aligns to Sweden standard time; use +02:00 for Swedish summer time.')
+param maintenanceUtcOffset string = '+01:00'
+
 @description('Tags for all resources')
 param tags object = {
   Environment: environment
@@ -31,7 +60,6 @@ param tags object = {
 
 // Variables
 var aksClusterName = '${baseName}-aks-${uniqueString(resourceGroup().id)}'
-var acrName = replace('${baseName}acr${uniqueString(resourceGroup().id)}', '-', '')
 var logAnalyticsName = '${baseName}-logs-${uniqueString(resourceGroup().id)}'
 var nodeResourceGroupName = '${resourceGroup().name}-infra'
 
@@ -48,18 +76,10 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   }
 }
 
-// Azure Container Registry
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
-  name: acrName
-  location: location
-  tags: tags
-  sku: {
-    name: 'Standard'
-  }
-  properties: {
-    adminUserEnabled: false
-    publicNetworkAccess: 'Enabled'
-  }
+// Shared Azure Container Registry
+resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+  name: sharedAcrName
+  scope: resourceGroup(sharedAcrResourceGroupName)
 }
 
 // AKS Cluster
@@ -174,6 +194,44 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
   }
 }
 
+// AKS maintenance schedule for Kubernetes auto-upgrades
+resource autoUpgradeMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-01-01' = {
+  parent: aks
+  name: 'aksManagedAutoUpgradeSchedule'
+  properties: {
+    maintenanceWindow: {
+      schedule: {
+        weekly: {
+          dayOfWeek: maintenanceDayOfWeek
+          intervalWeeks: 1
+        }
+      }
+      durationHours: maintenanceDurationHours
+      utcOffset: maintenanceUtcOffset
+      startTime: maintenanceStartTime
+    }
+  }
+}
+
+// AKS maintenance schedule for managed node OS image upgrades
+resource nodeImageMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-01-01' = {
+  parent: aks
+  name: 'aksManagedNodeOSUpgradeSchedule'
+  properties: {
+    maintenanceWindow: {
+      schedule: {
+        weekly: {
+          dayOfWeek: maintenanceDayOfWeek
+          intervalWeeks: 1
+        }
+      }
+      durationHours: maintenanceDurationHours
+      utcOffset: maintenanceUtcOffset
+      startTime: maintenanceStartTime
+    }
+  }
+}
+
 // Role assignment: User - Azure Kubernetes Service Cluster User Role
 resource userClusterUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(aks.id, userObjectId, 'AKSClusterUser')
@@ -193,17 +251,6 @@ resource userClusterAdminRole 'Microsoft.Authorization/roleAssignments@2022-04-0
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b1ff04bb-8a4e-4dc4-8eb5-8693973ce19b') // Azure Kubernetes Service RBAC Cluster Admin
     principalId: userObjectId
     principalType: 'User'
-  }
-}
-
-// Role assignment: AKS to ACR
-resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, aks.id, 'AcrPull')
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull
-    principalId: aks.properties.identityProfile.kubeletidentity.objectId
-    principalType: 'ServicePrincipal'
   }
 }
 

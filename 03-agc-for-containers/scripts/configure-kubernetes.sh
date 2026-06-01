@@ -15,6 +15,7 @@ echo
 
 RESOURCE_GROUP="rg-03-agc-containers-demo"
 DEPLOYMENT_NAME="agc-demo-deployment"
+APP_NAMESPACE="demo"
 ALB_CONTROLLER_NAMESPACE="azure-alb-system"
 ALB_RESOURCE_NAMESPACE="alb-infra"
 ALB_RESOURCE_NAME="alb"
@@ -155,6 +156,7 @@ echo
 
 echo -e "${YELLOW}[4/5] Deploying application...${NC}"
 cd "$SCRIPT_DIR/../kubernetes"
+kubectl apply -f namespace.yaml
 sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f gateway.yaml
@@ -165,7 +167,7 @@ echo
 
 echo -e "${YELLOW}[5/5] Waiting for external IP (this may take 2-3 minutes)...${NC}"
 for _ in {1..40}; do
-  EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || echo "")
+  EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n "$APP_NAMESPACE" -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || echo "")
   if [ -n "$EXTERNAL_IP" ]; then
     break
   fi
@@ -176,8 +178,8 @@ echo
 
 if [ -z "$EXTERNAL_IP" ]; then
   echo -e "${RED}⚠ Warning: External IP not yet assigned. Check status with:${NC}"
-  echo -e "  kubectl get gateway agc-demo-gateway"
-  echo -e "  kubectl describe gateway agc-demo-gateway"
+  echo -e "  kubectl get gateway agc-demo-gateway -n $APP_NAMESPACE"
+  echo -e "  kubectl describe gateway agc-demo-gateway -n $APP_NAMESPACE"
 else
   echo -e "${GREEN}✓ External IP assigned${NC}"
   echo
@@ -193,20 +195,20 @@ else
   echo -e "${YELLOW}Note: It may take 30-60 seconds for the application to become fully available.${NC}"
   echo
   echo "To view resources:"
-  echo "  kubectl get all"
-  echo "  kubectl get gateway"
-  echo "  kubectl get httproute"
-  echo "  kubectl get webapplicationfirewallpolicy"
+  echo "  kubectl get all -n $APP_NAMESPACE"
+  echo "  kubectl get gateway -n $APP_NAMESPACE"
+  echo "  kubectl get httproute -n $APP_NAMESPACE"
+  echo "  kubectl get webapplicationfirewallpolicy -n $APP_NAMESPACE"
   echo "  kubectl get applicationloadbalancer -n $ALB_RESOURCE_NAMESPACE"
   echo
   echo "To view logs:"
-  echo "  kubectl logs -l app=agc-demo-app"
+  echo "  kubectl logs -n $APP_NAMESPACE -l app=agc-demo-app"
   echo
   echo "To view Gateway status:"
-  echo "  kubectl describe gateway agc-demo-gateway"
+  echo "  kubectl describe gateway agc-demo-gateway -n $APP_NAMESPACE"
   echo
   echo "To view WAF status:"
-  echo "  kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy"
+  echo "  kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy -n $APP_NAMESPACE"
   echo
   echo "To clean up:"
   echo "  ./scripts/cleanup.sh"

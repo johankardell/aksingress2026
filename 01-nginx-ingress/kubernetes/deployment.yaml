@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-demo-app
-  namespace: default
+  namespace: demo
   labels:
     app: nginx-demo-app
     demo: nginx-ingress

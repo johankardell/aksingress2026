@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: envoy-demo-service
-  namespace: default
+  namespace: demo
   labels:
     app: envoy-demo-app
     demo: gateway-api

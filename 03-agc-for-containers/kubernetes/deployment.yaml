@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agc-demo-app
-  namespace: default
+  namespace: demo
   labels:
     app: agc-demo-app
     demo: agc-containers

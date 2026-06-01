@@ -34,7 +34,7 @@ Before running any demo, ensure you have:
 - **Azure Subscription** with permissions to:
   - Create resource groups
   - Create AKS clusters
-  - Create Azure Container Registry
+  - Create or reuse the shared Azure Container Registry
   - Assign role-based access control (RBAC)
 
   AKS access is configured through Microsoft Entra ID and Azure RBAC. The
@@ -57,7 +57,7 @@ Before running any demo, ensure you have:
   az bicep version
   ```
 
-- Local Docker is **not** required. Deployment scripts tag the sample app with a source-content hash and only build it remotely with Azure Container Registry Tasks (`az acr build`) when that tag is missing.
+- Local Docker is **not** required. Deployment scripts tag the sample app with a source-content hash and build the single shared image remotely with Azure Container Registry Tasks (`az acr build`) only when that tag is missing from the shared registry.
 
 - **Helm** version 3.12 or later
   ```bash
@@ -76,8 +76,10 @@ All demos are configured and tested for **Sweden Central** region:
 | **VM Specs** | 4 vCPUs, 16 GiB RAM | Modern Ampere Altra processor |
 | **AKS SKU Tier** | `Free` | Cost-optimized |
 | **Node Count** | 2 per cluster | Suitable for demos |
+| **AKS Maintenance Window** | Sunday 02:00-06:00 (fixed `+01:00`) | Nighttime auto-upgrade and node OS image updates |
 
 **Resource Group Names**:
+- Shared ACR: `rg-aksdemo-shared`
 - Demo 01: `rg-01-nginx-ingress-demo`
 - Demo 02: `rg-02-envoy-gateway-demo`
 - Demo 03: `rg-03-agc-containers-demo`
@@ -87,8 +89,10 @@ All demos are configured and tested for **Sweden Central** region:
 Each demo is self-contained in its own folder with complete infrastructure and deployment automation.
 Run `./scripts/deploy.sh` for the full sequential path, or run `./scripts/deploy-infra.sh`,
 `./scripts/build-image.sh`, and `./scripts/configure-kubernetes.sh` independently when you want
-separate infrastructure, image build, and Kubernetes configuration phases. Only the Kubernetes
-configuration phase changes or relies on the active `kubectl` context.
+separate infrastructure, image build, and Kubernetes configuration phases. `deploy-infra.sh`
+creates or reuses the shared ACR in `rg-aksdemo-shared`, and `build-image.sh` builds the shared
+sample image only if the source-content tag is missing. Only the Kubernetes configuration phase
+changes or relies on the active `kubectl` context.
 
 ### 1. NGINX Ingress Demo
 ```bash
@@ -142,6 +146,15 @@ aksingress2026/
     └── scripts/
 ```
 
+## Shared Azure Container Registry
+
+All three demos use one Azure Container Registry in `rg-aksdemo-shared` and the same `aks-ingress-demo:<source-hash>` image tag. The deployment scripts derive a deterministic ACR name from the current subscription, or you can set `SHARED_ACR_NAME` before running the scripts to use an existing registry name.
+
+- `deploy-infra.sh` creates/reuses `rg-aksdemo-shared`, creates/reuses the shared ACR, deploys the demo AKS resources, and grants that AKS kubelet identity `AcrPull` on the shared registry.
+- `build-image.sh` can be run once from any demo folder; it builds the shared sample app image with ACR Tasks only when the computed source-content tag is absent.
+- `configure-kubernetes.sh` deploys the same image reference for every demo while keeping demo-specific UI/content in Kubernetes environment variables.
+- Demo cleanup scripts delete only the demo resource group and Kubernetes resources. Delete `rg-aksdemo-shared` manually only after all demos that depend on the shared image have been removed.
+
 ## Sample Application
 
 All demos use the same [.NET 10 minimal API application](./shared/sample-app/), which provides:
@@ -158,7 +171,7 @@ The application displays which demo and ingress type is running, making it easy 
 
 - **AKS cluster (Free tier)**: $0/month
 - **2 x Standard_B4as_v2 nodes**: ~$70/month
-- **Azure Container Registry (Standard SKU)**: ~$20/month
+- **Shared Azure Container Registry (Standard SKU)**: ~$20/month total when present
 - **Load Balancer** (for NGINX and Envoy demos): ~$20/month
 - **Application Gateway for Containers** (for AGC demo): ~$40/month
 - **Virtual Network resources**: Minimal cost
@@ -169,7 +182,8 @@ The application displays which demo and ingress type is running, making it easy 
 - Demo 03 (App Gateway): ~$155/month
 
 💡 **To minimize costs**:
-- Use `./scripts/cleanup.sh` to delete resources after testing
+- Use `./scripts/cleanup.sh` to delete demo resources after testing
+- Delete `rg-aksdemo-shared` only after all demos are cleaned up
 - Deploy only one demo at a time
 - All demos use cost-optimized configurations (Free AKS tier, B-series VMs)
 

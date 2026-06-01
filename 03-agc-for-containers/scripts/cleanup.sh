@@ -11,7 +11,9 @@ echo -e "${YELLOW}  AGC - Cleanup Script${NC}"
 echo -e "${YELLOW}========================================================${NC}"
 echo
 
+SHARED_ACR_RESOURCE_GROUP="rg-aksdemo-shared"
 RESOURCE_GROUP="rg-03-agc-containers-demo"
+APP_NAMESPACE="demo"
 ALB_CONTROLLER_NAMESPACE="azure-alb-system"
 ALB_RESOURCE_NAMESPACE="alb-infra"
 ALB_RESOURCE_NAME="alb"
@@ -21,10 +23,10 @@ echo -e "${RED}WARNING: This will delete the following:${NC}"
 echo -e "  - Resource Group: ${RESOURCE_GROUP}"
 echo -e "  - AKS Cluster and all resources inside"
 echo -e "  - Application Gateway for Containers"
-echo -e "  - Azure Container Registry"
 echo -e "  - Virtual Network"
 echo -e "  - Log Analytics Workspace"
 echo -e "  - All associated resources"
+echo -e "${YELLOW}Note: Shared Azure Container Registry is not deleted by this script.${NC}"
 echo
 read -p "Are you sure you want to continue? (yes/no): " -r
 echo
@@ -36,11 +38,12 @@ fi
 
 echo -e "${YELLOW}[1/2] Deleting Kubernetes resources...${NC}"
 # Delete Gateway API resources
-kubectl delete webapplicationfirewallpolicy agc-demo-waf-policy --ignore-not-found=true
-kubectl delete httproute agc-demo-route --ignore-not-found=true
-kubectl delete gateway agc-demo-gateway --ignore-not-found=true
-kubectl delete deployment agc-demo-app --ignore-not-found=true
-kubectl delete service agc-demo-service --ignore-not-found=true
+kubectl delete webapplicationfirewallpolicy agc-demo-waf-policy -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete httproute agc-demo-route -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete gateway agc-demo-gateway -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete deployment agc-demo-app -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete service agc-demo-service -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete namespace "$APP_NAMESPACE" --ignore-not-found=true
 
 # Delete ApplicationLoadBalancer before removing the controller so finalizers can clean up AGC resources
 kubectl delete applicationloadbalancer -n $ALB_RESOURCE_NAMESPACE $ALB_RESOURCE_NAME --ignore-not-found=true --wait=false
@@ -69,4 +72,6 @@ echo "Note: Azure resource deletion is running in the background."
 echo "To check status: az group show --name $RESOURCE_GROUP"
 echo
 echo "The resource group will be fully deleted in 5-10 minutes."
+echo "Shared ACR remains in $SHARED_ACR_RESOURCE_GROUP for other demos."
+echo "To delete the shared ACR after all demos are removed: az group delete --name $SHARED_ACR_RESOURCE_GROUP --yes --no-wait"
 echo "AGC resources may take additional time to clean up."

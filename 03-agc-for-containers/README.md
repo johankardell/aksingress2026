@@ -65,7 +65,7 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 │  │  │  └──────────────────────────────────────────────────────────┘  │  │ │
 │  │  │                                                                 │  │ │
 │  │  │  ┌──────────────────────────────────────────────────────────┐  │  │ │
-│  │  │  │  Namespace: default                                       │  │  │ │
+│  │  │  │  Namespace: demo                                       │  │  │ │
 │  │  │  │                                                            │  │  │ │
 │  │  │  │  ┌────────────────────────────────────────────────────┐   │  │  │ │
 │  │  │  │  │  Gateway: agc-demo-gateway                       │   │  │  │ │
@@ -159,7 +159,7 @@ Key Azure-Specific Features:
 │  │   │  └──────────────────────────────────────────────────┘│ ││
 │  │   │                                                        │ ││
 │  │   │  ┌──────────────────────────────────────────────────┐│ ││
-│  │   │  │  default Namespace (Application)                 ││ ││
+│  │   │  │  demo Namespace (Application)                 ││ ││
 │  │   │  │  - Gateway: agc-demo-gateway                   ││ ││
 │  │   │  │  - HTTPRoute: agc-demo-route                   ││ ││
 │  │   │  │  - Service: agc-demo-service                   ││ ││
@@ -213,6 +213,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
+  namespace: demo
   annotations:
     alb.networking.azure.io/alb-name: alb
     alb.networking.azure.io/alb-namespace: alb-infra
@@ -253,6 +254,7 @@ spec:
     group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: agc-demo-route
+    namespace: demo
   webApplicationFirewall:
     id: <azure-waf-policy-resource-id>
 ```
@@ -265,7 +267,7 @@ spec:
 - Azure CLI (`az`) version 2.50.0+
 - kubectl version 1.27+
 - Helm version 3.12+
-- No local Docker installation required; images are built remotely with Azure Container Registry Tasks
+- No local Docker installation required; the shared image is built remotely with Azure Container Registry Tasks
 - Active Azure subscription with permissions to:
   - Create resource groups
   - Create Virtual Networks
@@ -284,8 +286,8 @@ spec:
 ```
 
 The script runs the three focused deployment phases in sequence:
-1. `./scripts/deploy-infra.sh` registers required Azure providers, creates the resource group, and deploys VNet/AKS/ACR via Bicep. This phase does not use `kubectl` and can be run in parallel with other demos.
-2. `./scripts/build-image.sh` builds and pushes the sample app image with Azure Container Registry Tasks after infrastructure exists.
+1. `./scripts/deploy-infra.sh` registers required Azure providers, creates the resource group, and deploys VNet/AKS via Bicep, creates/reuses the shared ACR in `rg-aksdemo-shared`, and grants AKS pull access. This phase does not use `kubectl` and can be run in parallel with other demos.
+2. `./scripts/build-image.sh` builds the shared sample app image with Azure Container Registry Tasks only if the source-content tag is missing.
 3. `./scripts/configure-kubernetes.sh` gets AKS credentials, configures Application Gateway for Containers, deploys Gateway/HTTPRoute/application resources, and displays the public URL. This is the only phase that changes or relies on the active `kubectl` context.
 
 You can also run the phases independently:
@@ -297,6 +299,8 @@ You can also run the phases independently:
 ```
 
 **Estimated time**: 10-15 minutes
+
+The shared ACR lives in `rg-aksdemo-shared`. Set `SHARED_ACR_NAME` to reuse a specific registry name; otherwise the scripts derive one from the subscription. The shared ACR is intentionally not deleted by a single demo cleanup script.
 
 ### Option 2: Manual Deployment
 
@@ -321,13 +325,19 @@ az group create \
   --name rg-03-agc-containers-demo \
   --location swedencentral
 
-# Deploy Bicep template
+# Deploy Bicep template and reference the shared ACR
 cd infrastructure
+source ../../shared/scripts/acr-image.sh
+ACR_NAME=$(ensure_shared_acr)
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create \
   --resource-group rg-03-agc-containers-demo \
   --name agc-demo-deployment \
   --template-file main.bicep \
-  --parameters main.bicepparam
+  --parameters main.bicepparam \
+  --parameters userObjectId="$USER_OBJECT_ID" \
+  --parameters sharedAcrName="$ACR_NAME" \
+  --parameters sharedAcrResourceGroupName="$SHARED_ACR_RESOURCE_GROUP"
 ```
 
 The automated `scripts/deploy-infra.sh` also assigns the AGC managed identity these required permissions:
@@ -356,19 +366,19 @@ az aks get-credentials \
   --overwrite-existing
 ```
 
-#### Step 4: Build and Push Image with ACR Tasks
+#### Step 4: Build Shared Image with ACR Tasks
 
 ```bash
-# Get ACR name
+# Get shared ACR name
 ACR_NAME=$(az deployment group show \
   --resource-group rg-03-agc-containers-demo \
   --name agc-demo-deployment \
   --query properties.outputs.acrName.value \
   --output tsv)
 
-# Build and push remotely only if the source-content tag is missing
-source ../shared/scripts/acr-image.sh
-ensure_sample_app_image "$ACR_NAME" "../shared/sample-app" "aks-ingress-demo"
+# Build remotely only if the source-content tag is missing
+source ../../shared/scripts/acr-image.sh
+ensure_sample_app_image "$ACR_NAME" "../../shared/sample-app" "aks-ingress-demo"
 ```
 
 #### Step 5: Install ALB Controller
@@ -443,12 +453,13 @@ kubectl get applicationloadbalancer -n alb-infra alb --watch
 #### Step 7: Deploy Application
 
 ```bash
-cd ../03-agc-for-containers/kubernetes
+cd ../kubernetes
 
 # Get ACR login server
-ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
+ACR_LOGIN_SERVER=$(az acr show --resource-group rg-aksdemo-shared --name "$ACR_NAME" --query loginServer --output tsv)
 
 # Deploy application
+kubectl apply -f namespace.yaml
 sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f gateway.yaml
@@ -467,10 +478,10 @@ sed -e "s|\${WAF_POLICY_ID}|${WAF_POLICY_ID}|g" waf-policy.yaml | kubectl apply 
 
 ```bash
 # Wait for Gateway to get IP (may take 2-3 minutes)
-kubectl get gateway agc-demo-gateway --watch
+kubectl get gateway agc-demo-gateway -n demo --watch
 
 # Once IP is assigned
-EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 echo "Application URL: http://$EXTERNAL_IP"
 ```
 
@@ -480,7 +491,7 @@ echo "Application URL: http://$EXTERNAL_IP"
 
 ```bash
 # Get the external IP
-EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 
 # Main page
 curl http://$EXTERNAL_IP
@@ -495,24 +506,27 @@ curl http://$EXTERNAL_IP/api/info
 ### Verify Resources
 
 ```bash
+# Check all demo application resources
+kubectl get all -n demo
+
 # Check ApplicationLoadBalancer
 kubectl get applicationloadbalancer -n alb-infra
 kubectl describe applicationloadbalancer -n alb-infra alb
 
 # Check Gateway
-kubectl get gateway agc-demo-gateway
-kubectl describe gateway agc-demo-gateway
+kubectl get gateway agc-demo-gateway -n demo
+kubectl describe gateway agc-demo-gateway -n demo
 
 # Check HTTPRoute
-kubectl get httproute agc-demo-route
-kubectl describe httproute agc-demo-route
+kubectl get httproute agc-demo-route -n demo
+kubectl describe httproute agc-demo-route -n demo
 
 # Check WAF policy attachment
-kubectl get webapplicationfirewallpolicy agc-demo-waf-policy
-kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy
+kubectl get webapplicationfirewallpolicy agc-demo-waf-policy -n demo
+kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy -n demo
 
 # Check pods
-kubectl get pods -l app=agc-demo-app
+kubectl get pods -n demo -l app=agc-demo-app
 
 # Check ALB Controller
 kubectl get pods -n azure-alb-system -l app=alb-controller
@@ -522,7 +536,7 @@ kubectl get pods -n azure-alb-system -l app=alb-controller
 
 ```bash
 # Application logs
-kubectl logs -l app=agc-demo-app --tail=50 -f
+kubectl logs -n demo -l app=agc-demo-app --tail=50 -f
 
 # ALB Controller logs
 kubectl logs -n azure-alb-system -l app=alb-controller --tail=50 -f
@@ -535,7 +549,7 @@ The demo creates an Azure Application Gateway WAF policy with `Microsoft_Default
 Send a request that matches the managed ruleset to confirm WAF blocks it:
 
 ```bash
-EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -o jsonpath='{.status.addresses[0].value}')
+EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 
 # Expected: HTTP 403 from WAF
 curl -i "http://$EXTERNAL_IP/?text=/etc/passwd"
@@ -544,8 +558,8 @@ curl -i "http://$EXTERNAL_IP/?text=/etc/passwd"
 If the request is not blocked immediately, wait a minute for AGC programming to finish and inspect status:
 
 ```bash
-kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy
-kubectl describe httproute agc-demo-route
+kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy -n demo
+kubectl describe httproute agc-demo-route -n demo
 kubectl logs -n azure-alb-system -l app=alb-controller --tail=100
 ```
 
@@ -557,6 +571,7 @@ kubectl logs -n azure-alb-system -l app=alb-controller --tail=100
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
+  namespace: demo
   annotations:
     alb.networking.azure.io/alb-name: alb
     alb.networking.azure.io/alb-namespace: alb-infra
@@ -627,33 +642,33 @@ az network vnet subnet show \
 
 ```bash
 # Check Gateway status
-kubectl describe gateway agc-demo-gateway
+kubectl describe gateway agc-demo-gateway -n demo
 
 # Check events
-kubectl get events --sort-by='.lastTimestamp'
+kubectl get events -n demo --sort-by='.lastTimestamp'
 
 # Verify Gateway references correct ALB
-kubectl get gateway agc-demo-gateway -o yaml | grep alb
+kubectl get gateway agc-demo-gateway -n demo -o yaml | grep alb
 ```
 
 ### HTTPRoute Not Working
 
 ```bash
 # Check HTTPRoute status
-kubectl describe httproute agc-demo-route
+kubectl describe httproute agc-demo-route -n demo
 
 # Verify backend service exists
-kubectl get service agc-demo-service
+kubectl get service agc-demo-service -n demo
 
 # Check service endpoints
-kubectl get endpoints agc-demo-service
+kubectl get endpoints agc-demo-service -n demo
 ```
 
 ### WAF Policy Not Attaching
 
 ```bash
 # Check WAF custom resource status
-kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy
+kubectl describe webapplicationfirewallpolicy agc-demo-waf-policy -n demo
 
 # Confirm the Azure WAF policy exists in the same resource group and region as AGC
 az network application-gateway waf-policy show \
@@ -689,6 +704,13 @@ az network application-gateway waf-policy show \
 
 ## Clean Up
 
+Demo cleanup scripts leave the shared ACR in `rg-aksdemo-shared` so another demo can continue pulling the shared image. After all demos are removed, delete the shared registry resource group manually if you no longer need it:
+
+```bash
+az group delete --name rg-aksdemo-shared --yes --no-wait
+```
+
+
 ### Using the Cleanup Script
 
 ```bash
@@ -714,7 +736,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 | AKS Cluster (2 nodes) | ~$140 |
 | Application Gateway for Containers | ~$40 (base) + consumption |
 | Web Application Firewall policy | May add WAF-related AGC charges depending on usage |
-| Azure Container Registry | ~$20 |
+| Shared Azure Container Registry | ~$20 total |
 | Virtual Network | No charge |
 | Public IP Address | ~$4 |
 | Log Analytics | ~$5 |

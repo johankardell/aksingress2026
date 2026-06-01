@@ -11,15 +11,17 @@ echo -e "${YELLOW}  Gateway API with Envoy - Cleanup Script${NC}"
 echo -e "${YELLOW}================================================${NC}"
 echo
 
+SHARED_ACR_RESOURCE_GROUP="rg-aksdemo-shared"
 RESOURCE_GROUP="rg-02-envoy-gateway-demo"
+APP_NAMESPACE="demo"
 
 # Confirm deletion
 echo -e "${RED}WARNING: This will delete the following:${NC}"
 echo -e "  - Resource Group: ${RESOURCE_GROUP}"
 echo -e "  - AKS Cluster and all resources inside"
-echo -e "  - Azure Container Registry"
 echo -e "  - Log Analytics Workspace"
 echo -e "  - All associated resources"
+echo -e "${YELLOW}Note: Shared Azure Container Registry is not deleted by this script.${NC}"
 echo
 read -p "Are you sure you want to continue? (yes/no): " -r
 echo
@@ -31,10 +33,11 @@ fi
 
 echo -e "${YELLOW}[1/2] Deleting Kubernetes resources...${NC}"
 # Delete Gateway API resources
-kubectl delete httproute envoy-demo-route --ignore-not-found=true
-kubectl delete gateway envoy-demo-gateway --ignore-not-found=true
-kubectl delete deployment envoy-demo-app --ignore-not-found=true
-kubectl delete service envoy-demo-service --ignore-not-found=true
+kubectl delete httproute envoy-demo-route -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete gateway envoy-demo-gateway -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete deployment envoy-demo-app -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete service envoy-demo-service -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete namespace "$APP_NAMESPACE" --ignore-not-found=true
 
 # Delete Envoy Gateway
 helm uninstall envoy-gateway -n envoy-gateway-system 2>/dev/null || echo "Helm release not found"
@@ -57,3 +60,5 @@ echo "Note: Azure resource deletion is running in the background."
 echo "To check status: az group show --name $RESOURCE_GROUP"
 echo
 echo "The resource group will be fully deleted in 5-10 minutes."
+echo "Shared ACR remains in $SHARED_ACR_RESOURCE_GROUP for other demos."
+echo "To delete the shared ACR after all demos are removed: az group delete --name $SHARED_ACR_RESOURCE_GROUP --yes --no-wait"
