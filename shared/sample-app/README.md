@@ -5,7 +5,7 @@ This is a simple .NET 10 minimal API web application used across all three AKS i
 ## Features
 
 - **Main Page** (`/`): Displays demo information with a beautiful UI
-- **Health Check** (`/health`): Kubernetes health probe endpoint
+- **Health Checks** (`/health`, `/health/live`, `/health/ready`): Compatibility, liveness, and readiness endpoints
 - **API Info** (`/api/info`): JSON endpoint with demo metadata
 
 ## Environment Variables
@@ -24,6 +24,14 @@ dotnet run
 ```
 
 Visit http://localhost:5000 to see the application.
+
+## Health Probes
+
+The app exposes three health endpoints:
+
+- `/health`: Compatibility endpoint for scripts and documentation that need a simple health check.
+- `/health/live`: Kubernetes liveness probe endpoint. It reports whether the app process is running and should be restarted if it fails.
+- `/health/ready`: Kubernetes readiness probe endpoint. It reports whether the app is ready to receive traffic.
 
 ## Building with Azure Container Registry Tasks
 
