@@ -702,6 +702,13 @@ rules:
 - matches:
   - path:
       type: PathPrefix
+      value: /
+  backendRefs:
+  - name: web
+    port: 80
+- matches:
+  - path:
+      type: PathPrefix
       value: /api
   backendRefs:
   - name: api
@@ -713,21 +720,15 @@ rules:
   backendRefs:
   - name: web
     port: 80
-- matches:
-  - path:
-      type: PathPrefix
-      value: /
-  backendRefs:
-  - name: web
-    port: 80
 </code></pre>
 </td>
 </tr>
 </table>
 
 Gateway API path matches are explicit (`PathPrefix`, `Exact`, or
-`RegularExpression` when supported). Model specific matches explicitly and verify
-route precedence when migrating an Ingress.
+`RegularExpression` when supported). Route precedence is determined by match
+specificity, not declaration order, but you should still verify behavior when
+migrating an Ingress.
 
 ### Annotation translation notes
 
