@@ -6,6 +6,7 @@ This folder contains Bicep infrastructure-as-code templates for deploying AKS wi
 
 - **Virtual Network**: With dedicated subnets for AKS and Application Gateway for Containers
 - **AKS Cluster**: Prepared for AGC with Workload Identity, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
+- **Web Application Firewall Policy**: Baseline DRS 2.1 policy for AGC route protection
 - **Shared Azure Container Registry reference**: Existing registry in `rg-aksdemo-shared` used for the demo application image
 - **Log Analytics Workspace**: For monitoring and diagnostics
 - **Managed Identities**: System-assigned for AKS, user-assigned for Application Gateway for Containers
@@ -21,6 +22,7 @@ This infrastructure showcases Azure-native ingress capabilities:
 - **Workload Identity**: Modern authentication for Azure services
 - **Microsoft Entra ID + Azure RBAC**: User access without admin kubeconfigs
 - **Azure Monitor Integration**: Native observability
+- **Azure WAF Policy**: Prevention-mode managed ruleset that can be attached through the ALB Controller
 
 ## Architecture
 
@@ -126,6 +128,7 @@ The deployment provides these outputs:
 - `agcSubnetId`: Application Gateway subnet resource ID
 - `agcIdentityName`: Name of the AGC managed identity
 - `agcIdentityClientId`: Client ID of the AGC managed identity
+- `wafPolicyId`: Resource ID of the Azure WAF policy attached by the Kubernetes demo
 - `resourceGroupName`: Resource group name
 - `nodeResourceGroupName`: AKS-managed infrastructure resource group name (`<resource-group>-infra`)
 
@@ -142,6 +145,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Application Gateway for Containers: ~$40/month (base capacity)
+- Web Application Firewall policy: may add WAF-related AGC charges depending on usage
 - Shared Azure Container Registry (Standard): ~$20/month total in `rg-aksdemo-shared`
 - Log Analytics: ~$5/month (minimal ingestion)
 - Virtual Network: No charge (included)
