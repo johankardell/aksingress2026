@@ -197,6 +197,7 @@ cd ../kubernetes
 ACR_LOGIN_SERVER=$(az acr show --resource-group rg-aksdemo-shared --name "$ACR_NAME" --query loginServer --output tsv)
 
 # Deploy application (replace ACR_LOGIN_SERVER in deployment.yaml)
+kubectl apply -f namespace.yaml
 sed -e "s|\${ACR_LOGIN_SERVER}|${ACR_LOGIN_SERVER}|g" -e "s|\${IMAGE_TAG}|${SAMPLE_APP_IMAGE_TAG}|g" deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 kubectl apply -f ingress.yaml
@@ -206,10 +207,10 @@ kubectl apply -f ingress.yaml
 
 ```bash
 # Wait for IP assignment (may take 2-3 minutes)
-kubectl get ingress nginx-demo-ingress --watch
+kubectl get ingress nginx-demo-ingress -n demo --watch
 
 # Once IP is assigned
-EXTERNAL_IP=$(kubectl get ingress nginx-demo-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+EXTERNAL_IP=$(kubectl get ingress nginx-demo-ingress -n demo -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo "Application URL: http://$EXTERNAL_IP"
 ```
 
@@ -219,7 +220,7 @@ echo "Application URL: http://$EXTERNAL_IP"
 
 ```bash
 # Get the external IP
-EXTERNAL_IP=$(kubectl get ingress nginx-demo-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+EXTERNAL_IP=$(kubectl get ingress nginx-demo-ingress -n demo -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 # Main page
 curl http://$EXTERNAL_IP
@@ -234,14 +235,17 @@ curl http://$EXTERNAL_IP/api/info
 ### Verify Deployment
 
 ```bash
+# Check all demo application resources
+kubectl get all -n demo
+
 # Check pods
-kubectl get pods -l app=nginx-demo-app
+kubectl get pods -n demo -l app=nginx-demo-app
 
 # Check service
-kubectl get service nginx-demo-service
+kubectl get service nginx-demo-service -n demo
 
 # Check ingress
-kubectl get ingress nginx-demo-ingress
+kubectl get ingress nginx-demo-ingress -n demo
 
 # Check NGINX controller
 kubectl get pods -n ingress-nginx
@@ -251,7 +255,7 @@ kubectl get pods -n ingress-nginx
 
 ```bash
 # Application logs
-kubectl logs -l app=nginx-demo-app --tail=50 -f
+kubectl logs -n demo -l app=nginx-demo-app --tail=50 -f
 
 # NGINX Ingress Controller logs
 kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --tail=50 -f
@@ -273,20 +277,20 @@ kubectl get events -n ingress-nginx --sort-by='.lastTimestamp'
 
 ```bash
 # Check pod status
-kubectl get pods -l app=nginx-demo-app
+kubectl get pods -n demo -l app=nginx-demo-app
 
 # Describe pod for events
-kubectl describe pod -l app=nginx-demo-app
+kubectl describe pod -n demo -l app=nginx-demo-app
 
 # Check logs
-kubectl logs -l app=nginx-demo-app
+kubectl logs -n demo -l app=nginx-demo-app
 ```
 
 ### Ingress Not Working
 
 ```bash
 # Verify ingress resource
-kubectl describe ingress nginx-demo-ingress
+kubectl describe ingress nginx-demo-ingress -n demo
 
 # Check NGINX controller logs
 kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller

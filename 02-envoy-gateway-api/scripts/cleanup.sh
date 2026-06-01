@@ -13,6 +13,7 @@ echo
 
 SHARED_ACR_RESOURCE_GROUP="rg-aksdemo-shared"
 RESOURCE_GROUP="rg-02-envoy-gateway-demo"
+APP_NAMESPACE="demo"
 
 # Confirm deletion
 echo -e "${RED}WARNING: This will delete the following:${NC}"
@@ -32,10 +33,11 @@ fi
 
 echo -e "${YELLOW}[1/2] Deleting Kubernetes resources...${NC}"
 # Delete Gateway API resources
-kubectl delete httproute envoy-demo-route --ignore-not-found=true
-kubectl delete gateway envoy-demo-gateway --ignore-not-found=true
-kubectl delete deployment envoy-demo-app --ignore-not-found=true
-kubectl delete service envoy-demo-service --ignore-not-found=true
+kubectl delete httproute envoy-demo-route -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete gateway envoy-demo-gateway -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete deployment envoy-demo-app -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete service envoy-demo-service -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete namespace "$APP_NAMESPACE" --ignore-not-found=true
 
 # Delete Envoy Gateway
 helm uninstall envoy-gateway -n envoy-gateway-system 2>/dev/null || echo "Helm release not found"

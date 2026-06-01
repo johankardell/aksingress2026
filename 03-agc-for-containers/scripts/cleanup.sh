@@ -13,6 +13,7 @@ echo
 
 SHARED_ACR_RESOURCE_GROUP="rg-aksdemo-shared"
 RESOURCE_GROUP="rg-03-agc-containers-demo"
+APP_NAMESPACE="demo"
 ALB_CONTROLLER_NAMESPACE="azure-alb-system"
 ALB_RESOURCE_NAMESPACE="alb-infra"
 ALB_RESOURCE_NAME="alb"
@@ -37,10 +38,11 @@ fi
 
 echo -e "${YELLOW}[1/2] Deleting Kubernetes resources...${NC}"
 # Delete Gateway API resources
-kubectl delete httproute agc-demo-route --ignore-not-found=true
-kubectl delete gateway agc-demo-gateway --ignore-not-found=true
-kubectl delete deployment agc-demo-app --ignore-not-found=true
-kubectl delete service agc-demo-service --ignore-not-found=true
+kubectl delete httproute agc-demo-route -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete gateway agc-demo-gateway -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete deployment agc-demo-app -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete service agc-demo-service -n "$APP_NAMESPACE" --ignore-not-found=true
+kubectl delete namespace "$APP_NAMESPACE" --ignore-not-found=true
 
 # Delete ApplicationLoadBalancer before removing the controller so finalizers can clean up AGC resources
 kubectl delete applicationloadbalancer -n $ALB_RESOURCE_NAMESPACE $ALB_RESOURCE_NAME --ignore-not-found=true --wait=false
