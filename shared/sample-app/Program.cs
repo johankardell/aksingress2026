@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 const string RequestIdHeader = "X-Request-Id";
 const string RequestIdItemKey = "RequestId";
@@ -47,12 +48,19 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.MapGet("/", () =>
+app.MapGet("/", (HttpContext context) =>
 {
     var demoName = Environment.GetEnvironmentVariable("DEMO_NAME") ?? "AKS Ingress Demo";
     var demoType = Environment.GetEnvironmentVariable("DEMO_TYPE") ?? "Unknown";
     var hostname = Environment.GetEnvironmentVariable("HOSTNAME") ?? "unknown-pod";
     var version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0";
+    var requestInfo = CreateRequestInspector(context);
+    var selectedHeaderRows = requestInfo.SelectedHeaders.Count == 0
+        ? @"<div class=""info-item""><span class=""empty"">No selected ingress or gateway headers were present.</span></div>"
+        : string.Join(Environment.NewLine, requestInfo.SelectedHeaders.Select(header => $@"
+            <div class=""info-item"">
+                <span class=""label"">{Display(header.Key)}:</span> {Display(header.Value)}
+            </div>"));
 
     var html = $@"
 <!DOCTYPE html>
@@ -60,7 +68,7 @@ app.MapGet("/", () =>
 <head>
     <meta charset=""UTF-8"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>{demoName}</title>
+    <title>{Display(demoName)}</title>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -69,7 +77,7 @@ app.MapGet("/", () =>
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             padding: 20px;
         }}
@@ -78,7 +86,7 @@ app.MapGet("/", () =>
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 40px;
-            max-width: 600px;
+            max-width: 900px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
             border: 1px solid rgba(255, 255, 255, 0.18);
         }}
@@ -101,6 +109,10 @@ app.MapGet("/", () =>
             font-weight: bold;
             color: #ffd700;
         }}
+        .empty {{
+            opacity: 0.8;
+            font-style: italic;
+        }}
         .footer {{
             text-align: center;
             margin-top: 30px;
@@ -117,20 +129,48 @@ app.MapGet("/", () =>
 <body>
     <div class=""container"">
         <div class=""logo"">🚀</div>
-        <h1>{demoName}</h1>
+        <h1>{Display(demoName)}</h1>
         <div class=""info"">
             <div class=""info-item"">
-                <span class=""label"">Demo Type:</span> {demoType}
+                <span class=""label"">Demo Type:</span> {Display(demoType)}
             </div>
             <div class=""info-item"">
-                <span class=""label"">Pod Name:</span> {hostname}
+                <span class=""label"">Pod Name:</span> {Display(hostname)}
             </div>
             <div class=""info-item"">
-                <span class=""label"">Version:</span> {version}
+                <span class=""label"">Version:</span> {Display(version)}
             </div>
             <div class=""info-item"">
                 <span class=""label"">Status:</span> ✅ Running on Azure Kubernetes Service
             </div>
+        </div>
+        <div class=""info"">
+            <h2>Request Inspector</h2>
+            <div class=""info-item"">
+                <span class=""label"">Host:</span> {Display(requestInfo.Host)}
+            </div>
+            <div class=""info-item"">
+                <span class=""label"">Path:</span> {Display(requestInfo.Path)}
+            </div>
+            <div class=""info-item"">
+                <span class=""label"">Scheme:</span> {Display(requestInfo.Scheme)}
+            </div>
+            <div class=""info-item"">
+                <span class=""label"">Method:</span> {Display(requestInfo.Method)}
+            </div>
+            <div class=""info-item"">
+                <span class=""label"">Query String:</span> {Display(requestInfo.QueryString)}
+            </div>
+            <div class=""info-item"">
+                <span class=""label"">Remote IP:</span> {Display(requestInfo.RemoteIp)}
+            </div>
+            <div class=""info-item"">
+                <span class=""label"">User Agent:</span> {Display(requestInfo.UserAgent)}
+            </div>
+        </div>
+        <div class=""info"">
+            <h2>Selected Headers</h2>
+            {selectedHeaderRows}
         </div>
         <div class=""footer"">
             <p>Azure AKS Ingress Comparison Demo 2026</p>
@@ -155,7 +195,8 @@ app.MapGet("/api/info", (HttpContext context) =>
         Hostname = Environment.GetEnvironmentVariable("HOSTNAME") ?? "unknown-pod",
         Version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0",
         RequestId = context.Items[RequestIdItemKey] as string ?? context.TraceIdentifier,
-        Status = "Running"
+        Status = "Running",
+        Request = CreateRequestInspector(context)
     };
 });
 
@@ -164,3 +205,89 @@ logger.LogInformation("Demo Name: {DemoName}", Environment.GetEnvironmentVariabl
 logger.LogInformation("Demo Type: {DemoType}", Environment.GetEnvironmentVariable("DEMO_TYPE") ?? "Not Set");
 
 app.Run();
+
+static RequestInspector CreateRequestInspector(HttpContext context)
+{
+    var request = context.Request;
+
+    return new RequestInspector(
+        request.Host.Value ?? "unknown",
+        request.PathBase.Add(request.Path).Value ?? "/",
+        request.Scheme,
+        request.Method,
+        request.QueryString.HasValue ? request.QueryString.Value : string.Empty,
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        request.Headers.UserAgent.ToString(),
+        GetSelectedHeaders(request.Headers));
+}
+
+static IReadOnlyDictionary<string, string> GetSelectedHeaders(IHeaderDictionary headers)
+{
+    var selectedHeaders = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    var selectedHeaderNames = new[]
+    {
+        "X-Forwarded-For",
+        "X-Forwarded-Proto",
+        "X-Forwarded-Host",
+        "X-Forwarded-Port",
+        "X-Forwarded-Prefix",
+        "X-Real-IP",
+        "X-Request-Id",
+        "X-Correlation-Id",
+        "X-Envoy-External-Address",
+        "X-Envoy-Original-Path",
+        "X-Envoy-Expected-Rq-Timeout-Ms",
+        "X-AppGw-Trace-Id",
+        "X-Original-Host",
+        "X-Original-Url",
+        "X-Azure-ClientIP",
+        "X-Azure-Ref"
+    };
+
+    foreach (var headerName in selectedHeaderNames)
+    {
+        if (headers.TryGetValue(headerName, out var value) && value.Count > 0)
+        {
+            selectedHeaders[headerName] = value.ToString();
+        }
+    }
+
+    foreach (var header in headers)
+    {
+        if (IsGatewayHeader(header.Key) && !selectedHeaders.ContainsKey(header.Key))
+        {
+            selectedHeaders[header.Key] = header.Value.ToString();
+        }
+    }
+
+    return selectedHeaders;
+}
+
+static bool IsGatewayHeader(string headerName)
+{
+    var gatewayHeaderPrefixes = new[]
+    {
+        "X-AppGw-",
+        "X-Azure-",
+        "X-Envoy-",
+        "X-Gateway-",
+        "X-Original-"
+    };
+
+    return gatewayHeaderPrefixes.Any(prefix => headerName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+}
+
+static string Display(string? value)
+{
+    return WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(value) ? "—" : value);
+}
+
+record RequestInspector(
+    string Host,
+    string Path,
+    string Scheme,
+    string Method,
+    string QueryString,
+    string RemoteIp,
+    string UserAgent,
+    IReadOnlyDictionary<string, string> SelectedHeaders);
