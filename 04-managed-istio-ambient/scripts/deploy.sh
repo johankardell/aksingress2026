@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+echo -e "${GREEN}================================================${NC}"
+echo -e "${GREEN}  Managed Istio Ambient - Deployment Orchestrator${NC}"
+echo -e "${GREEN}================================================${NC}"
+echo
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+"$SCRIPT_DIR/deploy-infra.sh"
+"$SCRIPT_DIR/build-image.sh"
+"$SCRIPT_DIR/configure-kubernetes.sh"
