@@ -7,7 +7,7 @@ param azureMonitorWorkspaceName string
 @description('Name of the shared Azure Managed Grafana instance')
 param grafanaName string
 
-@description('Azure AD user object ID to grant Grafana Admin access')
+@description('Microsoft Entra ID user object ID to grant Grafana Admin access')
 param userObjectId string
 
 @description('Tags for shared observability resources')
