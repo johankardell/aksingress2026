@@ -8,9 +8,9 @@ A comprehensive comparison of three different ingress approaches for Azure Kuber
 
 This repository contains three independent demonstrations showcasing different ingress/gateway solutions for AKS:
 
-1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional Ingress-based approach
-2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard
-3. **[Application Gateway for Containers](./03-agc-for-containers/)** - Azure-native ingress solution
+1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional Ingress-based approach ([Mermaid](./01-nginx-ingress/architecture.mermaid.md), [Draw.io](./01-nginx-ingress/architecture.drawio))
+2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard ([Mermaid](./02-envoy-gateway-api/architecture.mermaid.md), [Draw.io](./02-envoy-gateway-api/architecture.drawio))
+3. **[Application Gateway for Containers](./03-agc-for-containers/)** - Azure-native ingress solution ([Mermaid](./03-agc-for-containers/architecture.mermaid.md), [Draw.io](./03-agc-for-containers/architecture.drawio))
 
 Each demo deploys a simple .NET 10 web application to its own AKS cluster, accessible via a public IP address.
 
@@ -99,21 +99,21 @@ changes or relies on the active `kubectl` context.
 cd 01-nginx-ingress
 ./scripts/deploy.sh
 ```
-[📖 Full Documentation](./01-nginx-ingress/README.md)
+[📖 Full Documentation](./01-nginx-ingress/README.md) | [📊 Mermaid Diagram](./01-nginx-ingress/architecture.mermaid.md) | [✏️ Draw.io Diagram](./01-nginx-ingress/architecture.drawio)
 
 ### 2. Gateway API with Envoy Demo
 ```bash
 cd 02-envoy-gateway-api
 ./scripts/deploy.sh
 ```
-[📖 Full Documentation](./02-envoy-gateway-api/README.md)
+[📖 Full Documentation](./02-envoy-gateway-api/README.md) | [📊 Mermaid Diagram](./02-envoy-gateway-api/architecture.mermaid.md) | [✏️ Draw.io Diagram](./02-envoy-gateway-api/architecture.drawio)
 
 ### 3. AGC Demo
 ```bash
 cd 03-agc-for-containers
 ./scripts/deploy.sh
 ```
-[📖 Full Documentation](./03-agc-for-containers/README.md)
+[📖 Full Documentation](./03-agc-for-containers/README.md) | [📊 Mermaid Diagram](./03-agc-for-containers/architecture.mermaid.md) | [✏️ Draw.io Diagram](./03-agc-for-containers/architecture.drawio)
 
 ## Repository Structure
 

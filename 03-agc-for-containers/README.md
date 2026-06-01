@@ -23,6 +23,8 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 
 ## Traffic Flow
 
+[📊 Mermaid diagram](./architecture.mermaid.md) | [✏️ Draw.io diagram](./architecture.drawio)
+
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                          Azure Cloud                                       │

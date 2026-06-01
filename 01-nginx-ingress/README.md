@@ -20,6 +20,8 @@ Key tradeoffs compared with Gateway API:
 
 ## Architecture
 
+[📊 Mermaid diagram](./architecture.mermaid.md) | [✏️ Draw.io diagram](./architecture.drawio)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Azure Cloud                             │
