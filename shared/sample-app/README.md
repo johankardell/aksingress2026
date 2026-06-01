@@ -49,10 +49,11 @@ After deploying one of the demos, send a request with a known ID and search for 
 ```bash
 REQUEST_ID="demo-$(date +%s)"
 APP_HOST="<application-ip-or-hostname>"
+APP_NAMESPACE="demo" # sample manifests in this repository deploy to the demo namespace
 APP_LABEL="app=nginx-demo-app" # use app=envoy-demo-app or app=agc-demo-app for those demos
 
 curl -i -H "X-Request-Id: ${REQUEST_ID}" "http://${APP_HOST}/api/info"
-kubectl logs -n demo -l "${APP_LABEL}" --since=5m | grep "${REQUEST_ID}"
+kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUEST_ID}"
 ```
 
 ## Technology Stack

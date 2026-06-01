@@ -17,10 +17,17 @@ var logger = app.Logger;
 
 app.Use(async (context, next) =>
 {
-    var requestId = context.Request.Headers[RequestIdHeader].FirstOrDefault();
-    if (string.IsNullOrWhiteSpace(requestId))
+    var requestId = context.Request.Headers[RequestIdHeader].FirstOrDefault()?.Trim()
+        .Replace("\r", string.Empty)
+        .Replace("\n", string.Empty);
+
+    if (string.IsNullOrEmpty(requestId))
     {
         requestId = Guid.NewGuid().ToString("N");
+    }
+    else if (requestId.Length > 128)
+    {
+        requestId = requestId[..128];
     }
 
     context.Items[RequestIdItemKey] = requestId;
