@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+const string RequestIdHeader = "X-Request-Id";
+const string RequestIdItemKey = "RequestId";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,10 +17,26 @@ var logger = app.Logger;
 
 app.Use(async (context, next) =>
 {
-    logger.LogInformation("Request received: {Method} {Path} from {RemoteIp}",
+    var requestId = context.Request.Headers[RequestIdHeader].FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(requestId))
+    {
+        requestId = Guid.NewGuid().ToString("N");
+    }
+
+    context.Items[RequestIdItemKey] = requestId;
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers[RequestIdHeader] = requestId;
+        return Task.CompletedTask;
+    });
+
+    logger.LogInformation("Request received: {Method} {Path} from {RemoteIp} with {RequestIdHeader}: {RequestId}",
         context.Request.Method,
         context.Request.Path,
-        context.Connection.RemoteIpAddress);
+        context.Connection.RemoteIpAddress,
+        RequestIdHeader,
+        requestId);
+
     await next();
 });
 
@@ -117,7 +137,7 @@ app.MapGet("/", () =>
 
 app.MapHealthChecks("/health");
 
-app.MapGet("/api/info", () =>
+app.MapGet("/api/info", (HttpContext context) =>
 {
     return new
     {
@@ -125,6 +145,7 @@ app.MapGet("/api/info", () =>
         DemoType = Environment.GetEnvironmentVariable("DEMO_TYPE") ?? "Unknown",
         Hostname = Environment.GetEnvironmentVariable("HOSTNAME") ?? "unknown-pod",
         Version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0",
+        RequestId = context.Items[RequestIdItemKey] as string ?? context.TraceIdentifier,
         Status = "Running"
     };
 });
