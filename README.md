@@ -79,7 +79,7 @@ All demos are configured and tested for **Sweden Central** region:
 | **AKS Maintenance Window** | Sunday 02:00-06:00 (fixed `+01:00`) | Nighttime auto-upgrade and node OS image updates |
 
 **Resource Group Names**:
-- Shared ACR: `rg-aksdemo-shared`
+- Shared ACR/Grafana/Prometheus workspace: `rg-aksdemo-shared`
 - Demo 01: `rg-01-nginx-ingress-demo`
 - Demo 02: `rg-02-envoy-gateway-demo`
 - Demo 03: `rg-03-agc-containers-demo`
@@ -90,7 +90,7 @@ Each demo is self-contained in its own folder with complete infrastructure and d
 Run `./scripts/deploy.sh` for the full sequential path, or run `./scripts/deploy-infra.sh`,
 `./scripts/build-image.sh`, and `./scripts/configure-kubernetes.sh` independently when you want
 separate infrastructure, image build, and Kubernetes configuration phases. `deploy-infra.sh`
-creates or reuses the shared ACR in `rg-aksdemo-shared`, and `build-image.sh` builds the shared
+creates or reuses the shared ACR and shared observability resources in `rg-aksdemo-shared`, and `build-image.sh` builds the shared
 sample image only if the source-content tag is missing. Only the Kubernetes configuration phase
 changes or relies on the active `kubectl` context.
 
@@ -146,14 +146,45 @@ aksingress2026/
     └── scripts/
 ```
 
-## Shared Azure Container Registry
+## Shared Azure Container Registry and Observability
 
-All three demos use one Azure Container Registry in `rg-aksdemo-shared` and the same `aks-ingress-demo:<source-hash>` image tag. The deployment scripts derive a deterministic ACR name from the current subscription, or you can set `SHARED_ACR_NAME` before running the scripts to use an existing registry name.
+All three demos use one shared resource group, `rg-aksdemo-shared`, for resources that are intentionally reused across demo environments. This shared resource group is owned by the demo set rather than by any individual demo folder: each `deploy-infra.sh` run creates or reuses the shared resources, and each `cleanup.sh` deletes only its own demo resource group.
 
-- `deploy-infra.sh` creates/reuses `rg-aksdemo-shared`, creates/reuses the shared ACR, deploys the demo AKS resources, and grants that AKS kubelet identity `AcrPull` on the shared registry.
+Shared resources:
+
+- One Azure Container Registry with the same `aks-ingress-demo:<source-hash>` image tag. The deployment scripts derive a deterministic ACR name from the current subscription, or you can set `SHARED_ACR_NAME` before running the scripts to use an existing registry name.
+- One Azure Monitor workspace for managed Prometheus metrics from all demo AKS clusters.
+- One Azure Managed Grafana instance connected to that Azure Monitor workspace. The signed-in user that runs the deployment receives Grafana Admin on the shared instance, and Grafana's managed identity receives monitoring read permissions on the shared workspace.
+
+- `deploy-infra.sh` creates/reuses `rg-aksdemo-shared`, creates/reuses the shared ACR, Azure Monitor workspace, and Grafana instance, deploys the demo AKS resources, enables Azure Monitor managed Prometheus for that AKS cluster, and grants that AKS kubelet identity `AcrPull` on the shared registry.
 - `build-image.sh` can be run once from any demo folder; it builds the shared sample app image with ACR Tasks only when the computed source-content tag is absent.
 - `configure-kubernetes.sh` deploys the same image reference for every demo while keeping demo-specific UI/content in Kubernetes environment variables.
-- Demo cleanup scripts delete only the demo resource group and Kubernetes resources. Delete `rg-aksdemo-shared` manually only after all demos that depend on the shared image have been removed.
+- Demo cleanup scripts delete only the demo resource group and Kubernetes resources. Delete `rg-aksdemo-shared` manually only after all demos that depend on the shared image and shared Grafana have been removed.
+
+### Access Grafana
+
+After any demo infrastructure deployment completes, the script prints the shared Grafana name and endpoint. You can also look it up later:
+
+```bash
+az resource list \
+  --resource-group rg-aksdemo-shared \
+  --resource-type Microsoft.Dashboard/grafana \
+  --query "[0].{name:name,endpoint:properties.endpoint}" \
+  --output table
+```
+
+Open the endpoint in a browser and sign in with Microsoft Entra ID. Use the same account that ran `deploy-infra.sh`, or grant another user Grafana access on the shared Managed Grafana resource.
+
+### Dashboard guidance
+
+Use the shared Grafana data source backed by the Azure Monitor workspace to show metrics from all deployed demos. Useful views during demos:
+
+- Cluster health: node readiness, `up`, API server health, and scrape status.
+- Pod health: `kube_pod_status_phase`, restarts, ready replicas, and namespace filtering for `demo`.
+- Resource usage: CPU and memory by cluster, namespace, pod, and container.
+- Ingress/gateway traffic: NGINX ingress controller metrics for Demo 01, Envoy/Gateway API metrics for Demo 02, and AGC/Application Gateway metrics in Azure Monitor for Demo 03.
+
+Start with the built-in Azure Managed Prometheus Kubernetes dashboards, then filter by the `cluster` label to switch between Demo 01, Demo 02, and Demo 03.
 
 ## Sample Application
 
@@ -172,10 +203,12 @@ The application displays which demo and ingress type is running, making it easy 
 - **AKS cluster (Free tier)**: $0/month
 - **2 x Standard_B4as_v2 nodes**: ~$70/month
 - **Shared Azure Container Registry (Standard SKU)**: ~$20/month total when present
+- **Shared Azure Managed Grafana**: billed while `rg-aksdemo-shared` remains
 - **Load Balancer** (for NGINX and Envoy demos): ~$20/month
 - **Application Gateway for Containers** (for AGC demo): ~$40/month
 - **Virtual Network resources**: Minimal cost
 - **Log Analytics**: ~$5/month
+- **Azure Monitor workspace / managed Prometheus ingestion**: usage-based
 
 **Estimated monthly cost per demo**: 
 - Demos 01-02 (NGINX/Envoy): ~$115/month
@@ -183,7 +216,7 @@ The application displays which demo and ingress type is running, making it easy 
 
 💡 **To minimize costs**:
 - Use `./scripts/cleanup.sh` to delete demo resources after testing
-- Delete `rg-aksdemo-shared` only after all demos are cleaned up
+- Delete `rg-aksdemo-shared` only after all demos are cleaned up and nobody still needs the shared Grafana dashboards
 - Deploy only one demo at a time
 - All demos use cost-optimized configurations (Free AKS tier, B-series VMs)
 

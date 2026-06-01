@@ -286,7 +286,7 @@ spec:
 ```
 
 The script runs the three focused deployment phases in sequence:
-1. `./scripts/deploy-infra.sh` registers required Azure providers, creates the resource group, and deploys VNet/AKS via Bicep, creates/reuses the shared ACR in `rg-aksdemo-shared`, and grants AKS pull access. This phase does not use `kubectl` and can be run in parallel with other demos.
+1. `./scripts/deploy-infra.sh` registers required Azure providers, creates the resource group, deploys VNet/AKS via Bicep, enables managed Prometheus, creates/reuses the shared ACR, Azure Monitor workspace, and Grafana in `rg-aksdemo-shared`, and grants AKS pull access. This phase does not use `kubectl` and can be run in parallel with other demos.
 2. `./scripts/build-image.sh` builds the shared sample app image with Azure Container Registry Tasks only if the source-content tag is missing.
 3. `./scripts/configure-kubernetes.sh` gets AKS credentials, configures Application Gateway for Containers, deploys Gateway/HTTPRoute/application resources, and displays the public URL. This is the only phase that changes or relies on the active `kubectl` context.
 
@@ -702,12 +702,16 @@ az network application-gateway waf-policy show \
 ✅ **Cost-Effective**: Pay only for what you use  
 ✅ **Future-Proof**: Actively developed and supported by Microsoft  
 
+## Observability
+
+`deploy-infra.sh` enables Azure Monitor managed Prometheus on this AKS cluster and connects it to the shared Azure Monitor workspace and Azure Managed Grafana instance in `rg-aksdemo-shared`. The deployment output prints the Grafana endpoint. In Grafana, use the Azure Managed Prometheus Kubernetes dashboards and filter by this cluster to review cluster health, ingress/gateway traffic, pod health, and CPU/memory usage.
+
 ## Clean Up
 
 Demo cleanup scripts leave the shared ACR in `rg-aksdemo-shared` so another demo can continue pulling the shared image. After all demos are removed, delete the shared registry resource group manually if you no longer need it:
 
 ```bash
-az group delete --name rg-aksdemo-shared --yes --no-wait
+az group delete --name rg-aksdemo-shared --yes --no-wait  # Only after all demos and shared Grafana use are finished
 ```
 
 
@@ -740,6 +744,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 | Virtual Network | No charge |
 | Public IP Address | ~$4 |
 | Log Analytics | ~$5 |
+| Shared Azure Managed Grafana / managed Prometheus ingestion | Usage-based |
 | **Total** | **~$209/month** |
 
 💡 AGC uses consumption-based pricing for traffic, so costs vary with usage.

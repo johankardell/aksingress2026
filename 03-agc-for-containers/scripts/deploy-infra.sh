@@ -150,6 +150,12 @@ echo "Registering Microsoft.OperationsManagement..."
 az provider register --namespace Microsoft.OperationsManagement --wait 2>/dev/null || echo "Already registered"
 echo "Registering Microsoft.ContainerRegistry..."
 az provider register --namespace Microsoft.ContainerRegistry --wait 2>/dev/null || echo "Already registered"
+echo "Registering Microsoft.Monitor..."
+az provider register --namespace Microsoft.Monitor --wait 2>/dev/null || echo "Already registered"
+echo "Registering Microsoft.Insights..."
+az provider register --namespace Microsoft.Insights --wait 2>/dev/null || echo "Already registered"
+echo "Registering Microsoft.Dashboard..."
+az provider register --namespace Microsoft.Dashboard --wait 2>/dev/null || echo "Already registered"
 echo "Registering Microsoft.Network..."
 az provider register --namespace Microsoft.Network --wait 2>/dev/null || echo "Already registered"
 echo "Registering Microsoft.NetworkFunction..."
@@ -167,9 +173,10 @@ az group create \
 echo -e "${GREEN}✓ Resource group created${NC}"
 echo
 
-echo -e "${YELLOW}[3/7] Ensuring shared Azure Container Registry...${NC}"
+echo -e "${YELLOW}[3/7] Ensuring shared resource group and Azure Container Registry...${NC}"
 ACR_NAME=$(ensure_shared_acr)
 echo -e "${GREEN}✓ Shared ACR: ${ACR_NAME} (${SHARED_ACR_RESOURCE_GROUP})${NC}"
+echo -e "${GREEN}✓ Shared observability resources will be provisioned or reused in ${SHARED_ACR_RESOURCE_GROUP}${NC}"
 echo
 
 echo -e "${YELLOW}[4/7] Getting user information for RBAC...${NC}"
@@ -192,12 +199,17 @@ ACR_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$
 AGC_SUBNET_ID=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.agcSubnetId.value --output tsv)
 AGC_IDENTITY_PRINCIPAL_ID=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.agcIdentityPrincipalId.value --output tsv)
 NODE_RESOURCE_GROUP_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.nodeResourceGroupName.value --output tsv)
+AZURE_MONITOR_WORKSPACE_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.azureMonitorWorkspaceName.value --output tsv)
+GRAFANA_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.grafanaName.value --output tsv)
+GRAFANA_ENDPOINT=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.grafanaEndpoint.value --output tsv)
 KUBELET_OBJECT_ID=$(az aks show --resource-group "$RESOURCE_GROUP" --name "$AKS_NAME" --query identityProfile.kubeletidentity.objectId --output tsv)
 ACR_ID=$(az acr show --resource-group "$SHARED_ACR_RESOURCE_GROUP" --name "$ACR_NAME" --query id --output tsv)
 RESOURCE_GROUP_ID=$(az group show --name "$RESOURCE_GROUP" --query id --output tsv)
 NODE_RESOURCE_GROUP_ID=$(az group show --name "$NODE_RESOURCE_GROUP_NAME" --query id --output tsv)
 echo -e "${GREEN}✓ AKS Cluster: ${AKS_NAME}${NC}"
 echo -e "${GREEN}✓ Shared ACR: ${ACR_NAME} (${SHARED_ACR_RESOURCE_GROUP})${NC}"
+echo -e "${GREEN}✓ Shared Azure Monitor workspace: ${AZURE_MONITOR_WORKSPACE_NAME} (${SHARED_ACR_RESOURCE_GROUP})${NC}"
+echo -e "${GREEN}✓ Shared Grafana: ${GRAFANA_NAME} (${GRAFANA_ENDPOINT})${NC}"
 echo -e "${GREEN}✓ AKS infrastructure resource group: ${NODE_RESOURCE_GROUP_NAME}${NC}"
 echo
 
@@ -213,4 +225,6 @@ echo
 echo -e "${GREEN}✓ Infrastructure deployment complete${NC}"
 echo -e "  AKS Cluster: ${AKS_NAME}"
 echo -e "  Shared ACR: ${ACR_NAME} (${SHARED_ACR_RESOURCE_GROUP})"
+echo -e "  Shared Azure Monitor workspace: ${AZURE_MONITOR_WORKSPACE_NAME} (${SHARED_ACR_RESOURCE_GROUP})"
+echo -e "  Shared Grafana: ${GRAFANA_NAME} (${GRAFANA_ENDPOINT})"
 echo
