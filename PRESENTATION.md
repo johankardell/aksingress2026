@@ -16,7 +16,7 @@ Level 400 — deep dive
 We will cover four shifts that change how we build platforms on AKS this year:
 1. Istio: sidecar → ambient mode, with the repo demo using Azure Kubernetes Application Network preview because the classic AKS Istio add-on does not provide this Gateway API ambient path.
 2. Ingress → Gateway API (the new standard, role-oriented, vendor-neutral).
-3. Application Gateway for Containers (AGC) — the Azure-native Gateway API implementation, successor to AGIC.
+3. Application Gateway for Containers (AGC) — the Azure-native Gateway API implementation using the ALB Controller and `ApplicationLoadBalancer` CRD, successor to AGIC.
 4. Managed Argo CD on AKS — a first-class GitOps option next to managed Flux.
 Audience is expected to know AKS basics, kubectl, Helm and CRDs.
 
@@ -297,7 +297,7 @@ Show the contrast. With Ingress, the app developer files a PR that touches a clu
    ┌──────────────────────  AKS Cluster  ─────────────────────┐
    │                                                          │
    │  envoy-gateway (control plane, Deployment)               │
-   │      │  watches GatewayClass=envoy + Gateway + HTTPRoute │
+   │      │  watches GatewayClass=envoy-gateway + Gateway     │
    │      ▼  programs                                          │
    │  Envoy data plane Pods (one Deployment per Gateway)       │
    │      ▲                                                    │
@@ -315,50 +315,53 @@ Show the contrast. With Ingress, the app developer files a PR that touches a clu
 - 100% open source, Envoy data plane, runs anywhere
 - L7: HTTP, gRPC, WebSocket; L4 via TCPRoute
 - Filters: rate limit, JWT auth, transformations, OIDC
+- Demo implementation: `GatewayClass: envoy-gateway`, app resources in `default`, image built remotely by ACR Tasks
 
 **➡ Move to speaker notes (script):**
 
 ```bash
-# Install Envoy Gateway (CRDs + controller)
-helm install eg oci://docker.io/envoyproxy/gateway-helm \
-  --version v1.3.0 \
-  -n envoy-gateway-system --create-namespace
+# Demo path: 02-envoy-gateway-api
+cd 02-envoy-gateway-api
 
+# 1. Deploy AKS/ACR infra with Bicep, Entra ID + Azure RBAC, and local accounts disabled
+./scripts/deploy-infra.sh
+
+# 2. Build the sample app remotely only when the source-content image tag is missing
+./scripts/build-image.sh
+
+# 3. Install Envoy Gateway v1.2.3 and deploy the Gateway/HTTPRoute/application manifests
+./scripts/configure-kubernetes.sh
+
+# The resulting Gateway API shape:
 kubectl apply -f - <<'YAML'
 ---
 apiVersion: gateway.networking.k8s.io/v1
-kind: GatewayClass
-metadata: { name: envoy }
-spec:   { controllerName: gateway.envoyproxy.io/gatewayclass-controller }
----
-apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
-metadata: { name: public, namespace: edge }
+metadata: { name: envoy-demo-gateway, namespace: default }
 spec:
-  gatewayClassName: envoy
+  gatewayClassName: envoy-gateway
   listeners:
   - name: http
     port: 80
     protocol: HTTP
     allowedRoutes:
-      namespaces: { from: All }
+      namespaces: { from: Same }
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: { name: app, namespace: demo }
+metadata: { name: envoy-demo-route, namespace: default }
 spec:
   parentRefs:
-  - { name: public, namespace: edge }
-  hostnames: [ "app.contoso.com" ]
+  - { name: envoy-demo-gateway }
   rules:
   - matches: [ { path: { type: PathPrefix, value: / } } ]
     backendRefs:
-    - { name: sample-app, port: 80 }
+    - { name: envoy-demo-service, port: 80 }
 YAML
 ```
 
 **Speaker notes:**
-Envoy Gateway is the upstream-reference implementation. The controller watches GatewayClass/Gateway/HTTPRoute and renders an Envoy Deployment + Service per Gateway. On AKS, the Service of type LoadBalancer triggers an Azure SLB and a public IP — same model you already use, but the routing is now portable Gateway API YAML rather than NGINX annotations.
+Envoy Gateway is the upstream-reference implementation. The current demo installs the stable upstream release from its published `install.yaml`, verifies `GatewayClass/envoy-gateway`, then applies the application `Gateway` and `HTTPRoute` in the default namespace. On AKS, Envoy's Service of type LoadBalancer triggers an Azure SLB and public IP — same north-south model you already use, but routing is portable Gateway API YAML rather than controller-specific annotations. The repository deployment flow is split into infra, image build, and Kubernetes configuration phases so only the final phase touches the active `kubectl` context.
 
 ---
 
@@ -366,9 +369,10 @@ Envoy Gateway is the upstream-reference implementation. The controller watches G
 
 **What it is**
 - Azure-managed L7 load balancer, evolution of Application Gateway
-- Native Gateway API implementation (the ALB Controller installs `GatewayClass: azure-alb-external`)
+- Native Gateway API implementation (`GatewayClass: azure-alb-external`)
 - Replaces AGIC (Ingress-based) for new workloads
 - WAF, mTLS to backends, HTTP/2 + gRPC, path/header routing, weighted splits
+- Current demo installs ALB Controller by Helm; it does **not** use AKS Web App Routing / `az aks approuting`
 
 **How it "jacks into" the cluster**
 
@@ -379,7 +383,7 @@ Envoy Gateway is the upstream-reference implementation. The controller watches G
    Client ─────▶│  Application Gateway for Containers (PaaS)  │
                 │   (frontend IP, listeners, WAF)             │
                 │            │                                │
-                │            │ associated via Association     │
+                │            │ via ApplicationLoadBalancer CRD │
                 │            ▼                                │
                 │   Delegated subnet (AGC frontend)           │
                 └────────────┼────────────────────────────────┘
@@ -388,12 +392,13 @@ Envoy Gateway is the upstream-reference implementation. The controller watches G
                 ┌────────────────────────────────────────────┐
                 │  AKS cluster (VNet-integrated)             │
                 │                                            │
-                │  alb-controller (Deployment) ──┐           │
-                │     ▲ watches Gateway/Route    │ uses      │
-                │     │                          ▼  workload │
-                │  Gateway (gatewayClassName:    │  identity │
-                │      azure-alb-external) ──────┘           │
-                │  HTTPRoute → Service → Pod                 │
+                │  azure-alb-system: alb-controller (Helm)   │
+                │     ▲ watches Gateway/Route + ALB CRD      │
+                │     │                                      │
+                │  alb-infra: ApplicationLoadBalancer "alb"  │
+                │     │ uses Workload Identity               │
+                │  default: Gateway (azure-alb-external)     │
+                │           HTTPRoute → Service → Pod        │
                 └────────────────────────────────────────────┘
 ```
 
@@ -401,11 +406,11 @@ Envoy Gateway is the upstream-reference implementation. The controller watches G
 1. Client hits AGC public/private frontend IP.
 2. AGC terminates TLS, applies WAF + listener rules.
 3. AGC's data plane sends the request *directly to the backend pod IP* over the cluster's Azure CNI subnet (no NodePort, no kube-proxy).
-4. ALB Controller in the cluster keeps AGC's backend pool in sync with `HTTPRoute` + `EndpointSlice` changes via ARM.
+4. ALB Controller in the cluster keeps AGC's config in sync from `ApplicationLoadBalancer`, `Gateway`, `HTTPRoute`, and `EndpointSlice` changes via ARM.
 5. Response returns through AGC to the client.
 
 **Speaker notes:**
-The shape to remember: AGC is a *PaaS L7 LB* that lives in your VNet via a delegated subnet, and it talks to pod IPs directly because AKS uses Azure CNI. The in-cluster ALB Controller is just the bridge that translates Gateway API objects into ARM calls. There's no in-cluster proxy hop, which is the latency win over Envoy/NGINX-in-cluster designs.
+The shape to remember: AGC is a *PaaS L7 LB* that lives in your VNet via a delegated subnet, and it talks to pod IPs directly because AKS uses Azure CNI. The current demo creates an `ApplicationLoadBalancer` resource in the `alb-infra` namespace and installs the ALB Controller with Helm in `azure-alb-system`; it intentionally does not enable AKS Web App Routing. The in-cluster ALB Controller is the bridge that translates Gateway API objects and the ALB CRD into ARM calls. There's no in-cluster proxy hop, which is the latency win over Envoy/NGINX-in-cluster designs.
 
 ---
 
@@ -414,97 +419,65 @@ The shape to remember: AGC is a *PaaS L7 LB* that lives in your VNet via a deleg
 **➡ Move to speaker notes (script):**
 
 ```bash
-RG=rg-agc-demo
+RG=rg-03-agc-containers-demo
 LOC=swedencentral
-AKS=aks-agc-demo
-VNET=vnet-agc
-SUBNET_NODE=snet-nodes
-SUBNET_ALB=snet-alb
+DEMO_DIR=03-agc-for-containers
 
-# 1. Networking
-az group create -n $RG -l $LOC
-az network vnet create -g $RG -n $VNET --address-prefixes 10.20.0.0/16 \
-  --subnet-name $SUBNET_NODE --subnet-prefixes 10.20.0.0/22
-az network vnet subnet create -g $RG --vnet-name $VNET -n $SUBNET_ALB \
-  --address-prefixes 10.20.4.0/24 \
-  --delegations Microsoft.ServiceNetworking/trafficControllers
+# 1. Deploy VNet/AKS/ACR/AGC identity with Bicep
+#    - AKS 1.35.4, Free tier, 2 x Standard_B4as_v2 nodes
+#    - Entra ID + Azure RBAC enabled; local AKS accounts disabled
+#    - Retries cleanly if immutable role assignments already exist
+cd $DEMO_DIR
+./scripts/deploy-infra.sh
 
-SUBNET_NODE_ID=$(az network vnet subnet show -g $RG --vnet-name $VNET -n $SUBNET_NODE --query id -o tsv)
-SUBNET_ALB_ID=$(az network vnet subnet show  -g $RG --vnet-name $VNET -n $SUBNET_ALB  --query id -o tsv)
+# 2. Build the .NET sample app remotely with ACR Tasks only when the source hash tag is missing
+./scripts/build-image.sh
 
-# 2. AKS with workload identity + Azure CNI
-az aks create -g $RG -n $AKS -l $LOC \
-  --kubernetes-version 1.35.4 \
-  --tier free \
-  --node-vm-size Standard_B4as_v2 \
-  --node-count 3 \
-  --network-plugin azure --network-dataplane cilium \
-  --vnet-subnet-id $SUBNET_NODE_ID \
-  --enable-oidc-issuer --enable-workload-identity \
-  --generate-ssh-keys
-az aks get-credentials -g $RG -n $AKS
+# 3. Configure Kubernetes
+#    - Federate AGC identity to azure-alb-system/alb-controller-sa
+#    - Install ALB Controller Helm chart 1.10.28
+#    - Create ApplicationLoadBalancer alb in namespace alb-infra
+#    - Deploy Gateway, HTTPRoute, Service, and Deployment
+./scripts/configure-kubernetes.sh
 
-# 3. Managed identity + federated credential for the ALB Controller
-IDENTITY=mi-alb
-az identity create -g $RG -n $IDENTITY -l $LOC
-PRINCIPAL=$(az identity show -g $RG -n $IDENTITY --query principalId -o tsv)
-CLIENT=$(az identity show   -g $RG -n $IDENTITY --query clientId    -o tsv)
-
-# Allow ALB Controller to manage AGC
-az role assignment create --assignee-object-id $PRINCIPAL --assignee-principal-type ServicePrincipal \
-  --role "AppGw for Containers Configuration Manager" \
-  --scope $(az group show -g $RG --query id -o tsv)
-az role assignment create --assignee-object-id $PRINCIPAL --assignee-principal-type ServicePrincipal \
-  --role "Network Contributor" --scope $SUBNET_ALB_ID
-
-ISSUER=$(az aks show -g $RG -n $AKS --query oidcIssuerProfile.issuerUrl -o tsv)
-az identity federated-credential create -g $RG --identity-name $IDENTITY \
-  --name fedcred --issuer "$ISSUER" \
-  --subject "system:serviceaccount:azure-alb-system:alb-controller-sa" \
-  --audiences api://AzureADTokenExchange
-
-# 4. Install the ALB Controller
-helm install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-controller \
-  --version 1.0.0 \
-  -n azure-alb-system --create-namespace \
-  --set albController.podIdentity.clientID=$CLIENT
-
-# 5. Create the AGC resource and Association (delegated subnet)
-az network alb create -g $RG -n agc-demo
-az network alb frontend create -g $RG --alb-name agc-demo -n fe-public
-az network alb association create -g $RG --alb-name agc-demo -n assoc \
-  --subnet $SUBNET_ALB_ID
-
-# 6. Gateway + HTTPRoute (managed by ALB Controller)
+# Resulting AGC-specific resources:
 kubectl apply -f - <<'YAML'
+---
+apiVersion: alb.networking.azure.io/v1
+kind: ApplicationLoadBalancer
+metadata:
+  name: alb
+  namespace: alb-infra
+spec:
+  associations:
+  - <agc-subnet-resource-id>
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: agc-gw
-  namespace: edge
+  name: agc-demo-gateway
+  namespace: default
   annotations:
-    alb.networking.azure.io/alb-namespace: azure-alb-system
-    alb.networking.azure.io/alb-name: agc-demo
+    alb.networking.azure.io/alb-namespace: alb-infra
+    alb.networking.azure.io/alb-name: alb
 spec:
   gatewayClassName: azure-alb-external
   listeners:
-  - { name: http, port: 80, protocol: HTTP, allowedRoutes: { namespaces: { from: All } } }
+  - { name: http, port: 80, protocol: HTTP, allowedRoutes: { namespaces: { from: Same } } }
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: { name: app, namespace: demo }
+metadata: { name: agc-demo-route, namespace: default }
 spec:
-  parentRefs: [ { name: agc-gw, namespace: edge } ]
-  hostnames: [ "app.contoso.com" ]
+  parentRefs: [ { name: agc-demo-gateway } ]
   rules:
   - matches: [ { path: { type: PathPrefix, value: / } } ]
-    backendRefs: [ { name: sample-app, port: 80 } ]
+    backendRefs: [ { name: agc-demo-service, port: 80 } ]
 YAML
 ```
 
 **Speaker notes:**
-Pay attention to two things: (1) the `Association` resource ties AGC to the delegated subnet — that's how the PaaS LB gets a foothold inside *your* VNet; (2) the ALB Controller uses Workload Identity (federated credential on its ServiceAccount) — no secrets, no service principals. This is the AKS-recommended pattern across the board.
+Pay attention to three repo-specific details. First, `deploy-infra.sh` does the Azure-safe work: Bicep deployment, Entra/Azure RBAC user access, local accounts disabled, and post-deployment AGC identity role assignments once the AKS-managed infrastructure resource group exists. Second, `configure-kubernetes.sh` installs the ALB Controller with Helm and creates the `ApplicationLoadBalancer` CRD instance in `alb-infra`; the demo does not call `az aks approuting`. Third, the role-assignment retry path handles both `RoleAssignmentExists` and `RoleAssignmentUpdateNotPermitted`, which matters because Azure role assignment principal fields are immutable after creation.
 
 ---
 
@@ -540,36 +513,40 @@ Show this last in the ingress part of the talk. It is what many teams have had i
 ## Slide 15 — End-to-end: AGC + Gateway API + AKS
 
 ```
-    ┌─ App team (namespace: demo) ─┐    ┌─ Platform team (namespace: edge) ─┐
-    │                              │    │                                   │
-    │  HTTPRoute  ────parentRefs──▶│────│▶  Gateway (azure-alb-external)    │
-    │   hostnames, paths,          │    │   listeners, TLS, hostnames       │
-    │   header rules, splits       │    │                                   │
-    └──────────────────────────────┘    └───────────────┬───────────────────┘
-                                                        │ reconciled by
-                                                        ▼
-                                       alb-controller (in-cluster, WI)
-                                                        │ ARM API calls
-                                                        ▼
-                                Application Gateway for Containers (PaaS)
-                                  ├─ frontend(s) (public/private IP)
-                                  ├─ listener rules from Gateway listeners
-                                  ├─ backend settings from HTTPRoute filters
-                                  └─ backend pool = pod IPs from EndpointSlice
-                                                        │
-                                                        ▼
-                                                   AKS pods (Azure CNI)
+    ┌─ Application namespace: default ─────────────────────────────┐
+    │  Gateway (azure-alb-external)                                │
+    │    annotations: alb-name=alb, alb-namespace=alb-infra         │
+    │       ▲                                                       │
+    │       │ parentRefs                                            │
+    │  HTTPRoute → Service → Pod                                    │
+    └──────────────────────────────┬────────────────────────────────┘
+                                   │ watched by
+                                   ▼
+                  azure-alb-system: alb-controller (Workload Identity)
+                                   │ reads
+                                   ▼
+                  alb-infra: ApplicationLoadBalancer "alb"
+                                   │ ARM API calls
+                                   ▼
+                  Application Gateway for Containers (PaaS)
+                    ├─ frontend(s) (public/private IP)
+                    ├─ listener rules from Gateway listeners
+                    ├─ backend settings from HTTPRoute filters
+                    └─ backend pool = pod IPs from EndpointSlice
+                                   │
+                                   ▼
+                              AKS pods (Azure CNI)
 ```
 
 **Why this is great**
-- **Role separation**: platform owns Gateway, app owns HTTPRoute
+- **Clear ownership model**: platform can own `alb-infra` + controller; apps attach with Gateway/HTTPRoute
 - **Direct pod targeting**: AGC backend pool = real pod IPs, no extra hop
 - **Identity, not secrets**: ALB Controller uses Workload Identity + federated credential
 - **Portable spec**: same `HTTPRoute` yaml runs against Envoy Gateway in dev and AGC in prod
 - **Enterprise edge features for free**: WAF, mTLS to backend, autoscaled PaaS, Azure Monitor integration
 
 **Speaker notes:**
-This is the slide to land the point of part 2 + part 3: Gateway API is the *contract*, AGC is the *Azure-native implementation*. Teams write the same YAML for any environment; the platform team picks the implementation per environment (Envoy in dev, AGC in production). That is what "vendor-neutral with managed-service benefits" actually looks like.
+This is the slide to land the point of part 2 + part 3: Gateway API is the *contract*, AGC is the *Azure-native implementation*. The demo keeps the `Gateway`, `HTTPRoute`, service, and deployment in `default` for readability, while the AGC infrastructure object lives in `alb-infra` and the controller lives in `azure-alb-system`. In production you can split the Gateway and routes across platform/app namespaces; the API shape still lets teams write portable routing YAML while the platform team chooses Envoy in dev or AGC in production.
 
 ---
 
@@ -647,7 +624,7 @@ az aks create -g $RG -n $AKS -l $LOC \
   --kubernetes-version 1.35.4 \
   --tier free \
   --node-vm-size Standard_B4as_v2 \
-  --node-count 3 \
+  --node-count 2 \
   --enable-oidc-issuer --enable-workload-identity \
   --generate-ssh-keys
 az aks get-credentials -g $RG -n $AKS
@@ -698,7 +675,8 @@ The flow is identical to managed Flux from an operations standpoint: an AKS exte
 
 - **Mesh:** ambient Istio splits security (always-on, cheap ztunnel) from L7 (opt-in waypoints). No sidecars, no pod restarts on mesh upgrade.
 - **Ingress → Gateway API:** role-oriented, portable, structured status. Same YAML across Envoy, AGC, and others.
-- **AGC:** Azure-native Gateway API implementation; PaaS L7 LB in your VNet talking directly to pod IPs via Azure CNI; ALB Controller bridges Gateway API ↔ ARM with Workload Identity.
+- **AGC:** Azure-native Gateway API implementation; PaaS L7 LB in your VNet talking directly to pod IPs via Azure CNI; ALB Controller + `ApplicationLoadBalancer` bridge Gateway API ↔ ARM with Workload Identity.
+- **Demo repo baseline:** Sweden Central, AKS 1.35.4, Free tier, 2 x `Standard_B4as_v2`, Entra ID + Azure RBAC, local accounts disabled, source-hash ACR builds.
 - **Managed Argo CD:** AKS extension, Entra-SSO, Workload Identity, sits alongside managed Flux — pick per team.
 
 **One-liner to remember:** *Gateway API is the contract. Ambient is the safety net. AGC is the Azure on-ramp. Managed Argo CD is how the platform team keeps it all reconciled.*
