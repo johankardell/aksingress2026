@@ -7,7 +7,9 @@ This folder contains Bicep infrastructure-as-code templates for deploying AKS wi
 - **Virtual Network**: With dedicated subnets for AKS and Application Gateway for Containers
 - **AKS Cluster**: Prepared for AGC with Workload Identity, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
 - **Shared Azure Container Registry reference**: Existing registry in `rg-aksdemo-shared` used for the demo application image
-- **Log Analytics Workspace**: For monitoring and diagnostics
+- **Shared Azure Monitor workspace and Azure Managed Grafana**: Created or reused in `rg-aksdemo-shared` for managed Prometheus metrics from all demos
+- **Log Analytics Workspace**: For Container Insights logs and diagnostics
+- **Managed Prometheus collection**: AKS `azureMonitorProfile.metrics` plus a data collection rule that sends metrics to the shared Azure Monitor workspace
 - **Managed Identities**: System-assigned for AKS, user-assigned for Application Gateway for Containers
 - **RBAC Role Assignments**: User AKS access; AKS `AcrPull` on the shared registry and AGC identity roles are assigned by `scripts/deploy-infra.sh` after the AKS infrastructure resource group exists
 
@@ -89,7 +91,8 @@ Application Gateway for Containers (AGC) is Azure's modern, cloud-native applica
 # Create resource group
 az group create --name rg-03-agc-containers-demo --location swedencentral
 
-# Create or reuse the shared ACR, then deploy Bicep template
+# Create or reuse the shared resource group/ACR, then deploy Bicep template.
+# The template also creates or reuses shared Grafana and Azure Monitor workspace resources there.
 source ../../shared/scripts/acr-image.sh
 ACR_NAME=$(ensure_shared_acr)
 USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
@@ -121,6 +124,10 @@ The deployment provides these outputs:
 - `oidcIssuerUrl`: OIDC issuer URL for workload identity
 - `acrName`: Name of the shared ACR
 - `acrLoginServer`: Login server URL for the shared ACR
+- `azureMonitorWorkspaceName`: Name of the shared Azure Monitor workspace
+- `azureMonitorWorkspaceId`: Resource ID of the shared Azure Monitor workspace
+- `grafanaName`: Name of the shared Azure Managed Grafana instance
+- `grafanaEndpoint`: Endpoint URL for the shared Grafana instance
 - `vnetName`: Virtual network name
 - `aksSubnetId`: AKS subnet resource ID
 - `agcSubnetId`: Application Gateway subnet resource ID
@@ -143,6 +150,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 - AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
 - Application Gateway for Containers: ~$40/month (base capacity)
 - Shared Azure Container Registry (Standard): ~$20/month total in `rg-aksdemo-shared`
+- Shared Azure Managed Grafana and managed Prometheus ingestion: usage-based in `rg-aksdemo-shared`
 - Log Analytics: ~$5/month (minimal ingestion)
 - Virtual Network: No charge (included)
 
@@ -157,7 +165,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 az group delete --name rg-03-agc-containers-demo --yes --no-wait
 ```
 
-This deletes only the demo resource group. Delete `rg-aksdemo-shared` separately after all demos are cleaned up if you no longer need the shared ACR.
+This deletes only the demo resource group. Delete `rg-aksdemo-shared` separately only after all demos are cleaned up and you no longer need the shared ACR, Azure Monitor workspace, or Grafana dashboards.
 
 ## Next Steps
 
