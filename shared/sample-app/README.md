@@ -4,9 +4,9 @@ This is a simple .NET 10 minimal API web application used across all three AKS i
 
 ## Features
 
-- **Main Page** (`/`): Displays demo information with a beautiful UI
+- **Main Page** (`/`): Displays demo information and request inspector details with a beautiful UI
 - **Health Check** (`/health`): Kubernetes health probe endpoint
-- **API Info** (`/api/info`): JSON endpoint with demo metadata
+- **API Info** (`/api/info`): JSON endpoint with demo metadata and request inspector data
 
 ## Environment Variables
 

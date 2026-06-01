@@ -190,9 +190,9 @@ Start with the built-in Azure Managed Prometheus Kubernetes dashboards, then fil
 
 All demos use the same [.NET 10 minimal API application](./shared/sample-app/), which provides:
 
-- **Main Page** (`/`) - Beautiful UI showing demo information
+- **Main Page** (`/`) - Beautiful UI showing demo information and request inspector details
 - **Health Check** (`/health`) - Kubernetes liveness/readiness probe
-- **API Info** (`/api/info`) - JSON metadata endpoint
+- **API Info** (`/api/info`) - JSON metadata and request inspector endpoint
 
 The application displays which demo and ingress type is running, making it easy to verify successful deployment.
 
