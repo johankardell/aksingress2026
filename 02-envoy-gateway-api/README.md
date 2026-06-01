@@ -686,7 +686,7 @@ spec:
           name: api
           port:
             number: 80
-    - path: /health/ready
+    - path: /health
       pathType: Exact
       backend:
         service:
@@ -709,7 +709,7 @@ rules:
 - matches:
   - path:
       type: Exact
-      value: /health/ready
+      value: /health
   backendRefs:
   - name: web
     port: 80
@@ -742,7 +742,7 @@ route precedence when migrating an Ingress.
 ### Migration exercise
 
 1. Deploy the NGINX demo and confirm the shared sample app responds at `/`,
-   `/health/ready`, and `/api/info`.
+   `/health`, and `/api/info`.
 2. Open `../01-nginx-ingress/kubernetes/ingress.yaml` and identify the
    `ingressClassName`, annotations, path match, backend Service name, and port.
 3. In this demo, compare those fields with `kubernetes/gateway.yaml` and
