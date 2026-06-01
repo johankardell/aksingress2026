@@ -660,6 +660,10 @@ HANDS_ON_INTROS = {
         "Stand up an AKS cluster with the managed Istio add-on in ambient "
         "mode. Workloads get mTLS the moment a namespace is labeled — no "
         "sidecars to inject, no pod restarts on mesh upgrade.",
+    "Gateway API with Envoy Gateway on AKS":
+        "Run the Envoy Gateway demo through the repo's split deployment "
+        "phases: secure AKS infrastructure, source-hash image build, then "
+        "Gateway API resources applied to the cluster.",
     "Deploying AGC with Gateway API":
         "Provision Application Gateway for Containers next to an AKS cluster, "
         "wire it in via a delegated subnet, and let the ALB Controller drive "
@@ -676,11 +680,17 @@ HANDS_ON_OUTCOMES = {
         "demo namespace opted in via label — zero pod restarts",
         "Optional namespace-scoped Waypoint for L7 features",
     ],
+    "Gateway API with Envoy Gateway on AKS": [
+        "AKS/ACR infra with Entra ID + Azure RBAC",
+        "Local AKS accounts disabled; no admin kubeconfig dependency",
+        "Envoy Gateway v1.2.3 with GatewayClass/envoy-gateway",
+        "Gateway/HTTPRoute in default serving the sample app",
+    ],
     "Deploying AGC with Gateway API": [
         "AKS cluster + VNet with a delegated subnet for AGC",
-        "User-assigned Managed Identity + federated credential",
-        "ALB Controller installed via Helm with Workload Identity",
-        "AGC resource + Association live, Gateway + HTTPRoute serving traffic",
+        "AGC identity roles assigned after AKS infrastructure RG exists",
+        "ALB Controller Helm chart 1.10.28 with Workload Identity",
+        "ApplicationLoadBalancer CRD + Gateway + HTTPRoute serving traffic",
     ],
     "Enabling managed Argo CD": [
         "AKS cluster with OIDC issuer and Workload Identity",
