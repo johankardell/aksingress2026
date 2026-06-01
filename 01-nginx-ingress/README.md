@@ -20,6 +20,8 @@ Key tradeoffs compared with Gateway API:
 
 ## Architecture
 
+[📊 Mermaid diagram](./architecture.mermaid.md) | [✏️ Draw.io diagram](./architecture.drawio)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Azure Cloud                             │
@@ -316,7 +318,7 @@ If you're using NGINX Ingress Controller, consider migrating to:
 2. **Application Gateway for Containers** - For Azure-first deployments with enterprise features
 
 See the other demos in this repository:
-- [Gateway API with Envoy](../02-envoy-gateway-api/)
+- [Gateway API with Envoy](../02-envoy-gateway-api/) for side-by-side Ingress to Gateway API manifest translations
 - [Application Gateway for Containers](../03-agc-for-containers/)
 
 ## Observability

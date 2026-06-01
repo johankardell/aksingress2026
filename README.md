@@ -8,9 +8,9 @@ A comprehensive comparison of three different ingress approaches for Azure Kuber
 
 This repository contains three independent demonstrations showcasing different ingress/gateway solutions for AKS:
 
-1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional Ingress-based approach
-2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard
-3. **[Application Gateway for Containers](./03-agc-for-containers/)** - Azure-native ingress solution
+1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional Ingress-based approach ([Mermaid](./01-nginx-ingress/architecture.mermaid.md), [Draw.io](./01-nginx-ingress/architecture.drawio))
+2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard ([Mermaid](./02-envoy-gateway-api/architecture.mermaid.md), [Draw.io](./02-envoy-gateway-api/architecture.drawio))
+3. **[Application Gateway for Containers](./03-agc-for-containers/)** - Azure-native ingress solution ([Mermaid](./03-agc-for-containers/architecture.mermaid.md), [Draw.io](./03-agc-for-containers/architecture.drawio))
 
 Each demo deploys a simple .NET 10 web application to its own AKS cluster, accessible via a public IP address.
 
@@ -99,21 +99,21 @@ changes or relies on the active `kubectl` context.
 cd 01-nginx-ingress
 ./scripts/deploy.sh
 ```
-[📖 Full Documentation](./01-nginx-ingress/README.md)
+[📖 Full Documentation](./01-nginx-ingress/README.md) | [📊 Mermaid Diagram](./01-nginx-ingress/architecture.mermaid.md) | [✏️ Draw.io Diagram](./01-nginx-ingress/architecture.drawio)
 
 ### 2. Gateway API with Envoy Demo
 ```bash
 cd 02-envoy-gateway-api
 ./scripts/deploy.sh
 ```
-[📖 Full Documentation](./02-envoy-gateway-api/README.md)
+[📖 Full Documentation](./02-envoy-gateway-api/README.md) | [📊 Mermaid Diagram](./02-envoy-gateway-api/architecture.mermaid.md) | [✏️ Draw.io Diagram](./02-envoy-gateway-api/architecture.drawio)
 
 ### 3. AGC Demo
 ```bash
 cd 03-agc-for-containers
 ./scripts/deploy.sh
 ```
-[📖 Full Documentation](./03-agc-for-containers/README.md)
+[📖 Full Documentation](./03-agc-for-containers/README.md) | [📊 Mermaid Diagram](./03-agc-for-containers/architecture.mermaid.md) | [✏️ Draw.io Diagram](./03-agc-for-containers/architecture.drawio)
 
 ## Repository Structure
 
@@ -191,10 +191,23 @@ Start with the built-in Azure Managed Prometheus Kubernetes dashboards, then fil
 All demos use the same [.NET 10 minimal API application](./shared/sample-app/), which provides:
 
 - **Main Page** (`/`) - Beautiful UI showing demo information and request inspector details
-- **Health Check** (`/health`) - Kubernetes liveness/readiness probe
-- **API Info** (`/api/info`) - JSON metadata and request inspector endpoint
+- **Health Checks** (`/health`, `/health/live`, `/health/ready`) - Compatibility, liveness, and readiness endpoints
+- **API Info** (`/api/info`) - JSON metadata and request inspector endpoint with the current request ID
+- **Request Tracing** - Accepts or generates `X-Request-Id`, returns it as a response header, and includes it in application logs
 
 The application displays which demo and ingress type is running, making it easy to verify successful deployment.
+
+Trace one request through the application logs:
+
+```bash
+REQUEST_ID="demo-$(date +%s)"
+APP_HOST="<application-ip-or-hostname>"
+APP_NAMESPACE="demo" # sample manifests in this repository deploy to the demo namespace
+APP_LABEL="app=nginx-demo-app" # use app=envoy-demo-app or app=agc-demo-app for those demos
+
+curl -i -H "X-Request-Id: ${REQUEST_ID}" "http://${APP_HOST}/api/info"
+kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUEST_ID}"
+```
 
 ## Cost Considerations
 

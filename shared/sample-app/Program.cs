@@ -5,6 +5,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
+const string RequestIdHeader = "X-Request-Id";
+const string RequestIdItemKey = "RequestId";
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHealthChecks();
@@ -15,10 +18,33 @@ var logger = app.Logger;
 
 app.Use(async (context, next) =>
 {
-    logger.LogInformation("Request received: {Method} {Path} from {RemoteIp}",
+    var requestId = context.Request.Headers[RequestIdHeader].FirstOrDefault()?.Trim()
+        .Replace("\r", string.Empty)
+        .Replace("\n", string.Empty);
+
+    if (string.IsNullOrEmpty(requestId))
+    {
+        requestId = Guid.NewGuid().ToString("N");
+    }
+    else if (requestId.Length > 128)
+    {
+        requestId = requestId[..128];
+    }
+
+    context.Items[RequestIdItemKey] = requestId;
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers[RequestIdHeader] = requestId;
+        return Task.CompletedTask;
+    });
+
+    logger.LogInformation("Request received: {Method} {Path} from {RemoteIp} with {RequestIdHeader}: {RequestId}",
         context.Request.Method,
         context.Request.Path,
-        context.Connection.RemoteIpAddress);
+        context.Connection.RemoteIpAddress,
+        RequestIdHeader,
+        requestId);
+
     await next();
 });
 
@@ -157,6 +183,8 @@ app.MapGet("/", (HttpContext context) =>
 });
 
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live");
+app.MapHealthChecks("/health/ready");
 
 app.MapGet("/api/info", (HttpContext context) =>
 {
@@ -166,6 +194,7 @@ app.MapGet("/api/info", (HttpContext context) =>
         DemoType = Environment.GetEnvironmentVariable("DEMO_TYPE") ?? "Unknown",
         Hostname = Environment.GetEnvironmentVariable("HOSTNAME") ?? "unknown-pod",
         Version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0",
+        RequestId = context.Items[RequestIdItemKey] as string ?? context.TraceIdentifier,
         Status = "Running",
         Request = CreateRequestInspector(context)
     };
