@@ -1,12 +1,16 @@
 # Architecture Diagrams
 
-This repository includes professional draw.io architecture diagrams for each demo, located in their respective folders:
+This repository includes professional Draw.io architecture diagrams and GitHub-rendered Mermaid diagrams for each demo, located in their respective folders:
 
-- **Demo 01:** `01-nginx-ingress/architecture.drawio`
-- **Demo 02:** `02-envoy-gateway-api/architecture.drawio`
-- **Demo 03:** `03-agc-for-containers/architecture.drawio`
+- **Demo 01:** [Mermaid](01-nginx-ingress/architecture.mermaid.md) | [Draw.io](01-nginx-ingress/architecture.drawio)
+- **Demo 02:** [Mermaid](02-envoy-gateway-api/architecture.mermaid.md) | [Draw.io](02-envoy-gateway-api/architecture.drawio)
+- **Demo 03:** [Mermaid](03-agc-for-containers/architecture.mermaid.md) | [Draw.io](03-agc-for-containers/architecture.drawio)
 
 ## How to View and Edit
+
+### Mermaid diagrams (GitHub)
+
+Open any `architecture.mermaid.md` file directly on GitHub to view the rendered diagram without external tooling.
 
 ### Option 1: diagrams.net (Online)
 1. Go to https://app.diagrams.net/
@@ -27,7 +31,7 @@ This repository includes professional draw.io architecture diagrams for each dem
 
 ### Demo 01: NGINX Ingress Controller (Traditional)
 
-**File:** `01-nginx-ingress/architecture.drawio`
+**Files:** [Mermaid](01-nginx-ingress/architecture.mermaid.md) | [Draw.io](01-nginx-ingress/architecture.drawio)
 
 **Components:**
 - Internet → Azure Load Balancer
@@ -52,7 +56,7 @@ Internet → Load Balancer → NGINX Controller → Service → Pods
 
 ### Demo 02: Gateway API with Envoy Gateway (Modern Standard)
 
-**File:** `02-envoy-gateway-api/architecture.drawio`
+**Files:** [Mermaid](02-envoy-gateway-api/architecture.mermaid.md) | [Draw.io](02-envoy-gateway-api/architecture.drawio)
 
 **Components:**
 - Internet → Azure Load Balancer
@@ -92,7 +96,7 @@ Envoy Controller → Envoy Proxy (configuration)
 
 ### Demo 03: Application Gateway for Containers (Azure-Native)
 
-**File:** `03-agc-for-containers/architecture.drawio`
+**Files:** [Mermaid](03-agc-for-containers/architecture.mermaid.md) | [Draw.io](03-agc-for-containers/architecture.drawio)
 
 **Components:**
 - Internet → Application Gateway for Containers (Azure-native)
@@ -214,7 +218,7 @@ These diagrams complement the written documentation in each demo's README:
 - **Demo 02 README**: Details Gateway API benefits
 - **Demo 03 README**: Covers Azure-native features
 
-The diagrams provide visual reference while following the deployment guides.
+The Mermaid diagrams provide GitHub-rendered visual reference while following the deployment guides. The Draw.io files remain available for detailed editing and presentation exports.
 
 ---
 
@@ -245,5 +249,5 @@ If you need to modify these diagrams or have questions about the architecture:
 ---
 
 **Last Updated:** May 21, 2026  
-**Format:** Draw.io XML (.drawio)  
+**Formats:** Mermaid Markdown (`architecture.mermaid.md`) and Draw.io XML (`architecture.drawio`)  
 **Compatibility:** diagrams.net, Draw.io Desktop, VS Code Draw.io extension

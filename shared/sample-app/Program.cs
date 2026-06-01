@@ -143,6 +143,8 @@ app.MapGet("/", () =>
 });
 
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live");
+app.MapHealthChecks("/health/ready");
 
 app.MapGet("/api/info", (HttpContext context) =>
 {
