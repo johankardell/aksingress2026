@@ -457,7 +457,7 @@ static string? NormalizeColor(string? color)
     }
 
     var trimmed = color.Trim();
-    if (trimmed[0] != '#')
+    if (trimmed.Length == 0 || trimmed[0] != '#')
     {
         return null;
     }
