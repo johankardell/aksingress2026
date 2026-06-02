@@ -55,6 +55,7 @@ app.Use(async (context, next) =>
 app.MapGet("/", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
 {
     var serviceInfo = CreateServiceInfo(context);
+    var theme = CreateTheme(serviceInfo.Version);
     var downstreamResult = await CallDownstreamAsync(context, httpClientFactory, logger);
     var requestInfo = serviceInfo.Request;
     var selectedHeaderRows = requestInfo.SelectedHeaders.Count == 0
@@ -82,7 +83,7 @@ app.MapGet("/", async (HttpContext context, IHttpClientFactory httpClientFactory
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: {theme.Background};
             color: white;
             display: flex;
             justify-content: center;
@@ -98,7 +99,7 @@ app.MapGet("/", async (HttpContext context, IHttpClientFactory httpClientFactory
             padding: 40px;
             max-width: 900px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            border: 3px solid {theme.Color};
         }}
         h1 {{
             margin-top: 0;
@@ -117,7 +118,20 @@ app.MapGet("/", async (HttpContext context, IHttpClientFactory httpClientFactory
         }}
         .label {{
             font-weight: bold;
-            color: #ffd700;
+            color: {theme.Color};
+        }}
+        .backend-banner {{
+            background: {theme.Color};
+            color: #1f2937;
+            border-radius: 999px;
+            font-size: 1.4em;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            margin: 0 auto 24px;
+            padding: 14px 24px;
+            text-align: center;
+            text-transform: uppercase;
+            width: fit-content;
         }}
         .empty {{
             opacity: 0.8;
@@ -140,7 +154,7 @@ app.MapGet("/", async (HttpContext context, IHttpClientFactory httpClientFactory
             padding: 12px 18px;
             border-radius: 8px;
             color: #2d2d2d;
-            background: #ffd700;
+            background: {theme.Color};
             text-decoration: none;
             font-weight: 700;
         }}
@@ -157,8 +171,12 @@ app.MapGet("/", async (HttpContext context, IHttpClientFactory httpClientFactory
 <body>
     <div class=""container"">
         <div class=""logo"">🚀</div>
+        <div class=""backend-banner"">{Display(serviceInfo.Banner)}</div>
         <h1>{Display(serviceInfo.DemoName)}</h1>
         <div class=""info"">
+            <div class=""info-item"">
+                <span class=""label"">Backend:</span> {Display(serviceInfo.Backend)}
+            </div>
             <div class=""info-item"">
                 <span class=""label"">Service:</span> {Display(serviceInfo.ServiceName)}
             </div>
@@ -264,7 +282,9 @@ static ServiceInfo CreateServiceInfo(HttpContext context)
     var serviceName = Environment.GetEnvironmentVariable("SERVICE_NAME") ?? demoName;
     var hostname = Environment.GetEnvironmentVariable("HOSTNAME") ?? "unknown-pod";
     var version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0";
+    var banner = Environment.GetEnvironmentVariable("APP_BANNER");
     var downstreamUrl = Environment.GetEnvironmentVariable("DOWNSTREAM_URL") ?? string.Empty;
+    var displayBanner = string.IsNullOrWhiteSpace(banner) ? $"Backend {version}" : banner;
 
     return new ServiceInfo(
         serviceName,
@@ -272,6 +292,8 @@ static ServiceInfo CreateServiceInfo(HttpContext context)
         demoType,
         hostname,
         version,
+        displayBanner,
+        $"{displayBanner} | pod {hostname}",
         context.Items[RequestIdItemKey] as string ?? context.TraceIdentifier,
         string.IsNullOrWhiteSpace(downstreamUrl) ? null : downstreamUrl,
         "Running",
@@ -408,6 +430,42 @@ static bool IsGatewayHeader(string headerName)
     return gatewayHeaderPrefixes.Any(prefix => headerName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
 }
 
+static Theme CreateTheme(string version)
+{
+    var themeName = Environment.GetEnvironmentVariable("APP_THEME");
+    var defaultThemeName = version.Contains("v2", StringComparison.OrdinalIgnoreCase)
+        || version.Contains("green", StringComparison.OrdinalIgnoreCase)
+            ? "green"
+            : "blue";
+
+    var theme = (string.IsNullOrWhiteSpace(themeName) ? defaultThemeName : themeName).Trim().ToLowerInvariant() switch
+    {
+        "green" or "v2" => new Theme("#86efac", "linear-gradient(135deg, #047857 0%, #064e3b 100%)"),
+        "orange" or "canary" => new Theme("#fdba74", "linear-gradient(135deg, #ea580c 0%, #7c2d12 100%)"),
+        "purple" => new Theme("#c4b5fd", "linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)"),
+        _ => new Theme("#93c5fd", "linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%)")
+    };
+
+    var color = Environment.GetEnvironmentVariable("APP_COLOR");
+    return new Theme(NormalizeColor(color) ?? theme.Color, theme.Background);
+}
+
+static string? NormalizeColor(string? color)
+{
+    if (string.IsNullOrWhiteSpace(color))
+    {
+        return null;
+    }
+
+    var trimmed = color.Trim();
+    if (trimmed.Length is not (4 or 7) || trimmed[0] != '#')
+    {
+        return null;
+    }
+
+    return trimmed[1..].All(Uri.IsHexDigit) ? trimmed : null;
+}
+
 static string Display(string? value)
 {
     return WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(value) ? "—" : value);
@@ -419,10 +477,16 @@ record ServiceInfo(
     string DemoType,
     string Hostname,
     string Version,
+    string Banner,
+    string Backend,
     string RequestId,
     string? DownstreamUrl,
     string Status,
     RequestInspector Request);
+
+record Theme(
+    string Color,
+    string Background);
 
 record DownstreamCall(
     string Label,

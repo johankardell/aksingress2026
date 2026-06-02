@@ -4,7 +4,7 @@ This is a simple .NET 10 minimal API web application used across all AKS ingress
 
 ## Features
 
-- **Main Page** (`/`): Displays demo information and request inspector details with a beautiful UI
+- **Main Page** (`/`): Displays demo information, backend banner, pod identity, and request inspector details with a beautiful UI
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`): Compatibility, liveness, and readiness endpoints
 - **API Info** (`/api/info`): JSON endpoint with service metadata, request inspector data, the current request ID, and downstream configuration
 - **Downstream Call** (`/api/call`, `/api/orders`): Calls the configured downstream service and returns a nested JSON result for mesh demos
@@ -18,6 +18,9 @@ The application uses environment variables to customize the display:
 - `DEMO_NAME`: The name of the demo (e.g., "NGINX Ingress Demo")
 - `DEMO_TYPE`: The type of ingress or service networking path (e.g., "NGINX Ingress Controller", "Gateway API with Envoy", "Application Gateway for Containers")
 - `APP_VERSION`: Application version (default: "1.0.0")
+- `APP_BANNER`: Prominent banner text for blue/green, canary, or v1/v2 backends
+- `APP_THEME`: Visual theme name (`blue`, `green`, `orange`/`canary`, or `purple`; defaults to blue for v1 and green for v2/green versions)
+- `APP_COLOR`: Optional `#RGB` or `#RRGGBB` accent color override
 - `DOWNSTREAM_URL`: Optional absolute HTTP/HTTPS URL to call from `/` and `/api/call`
 - `DOWNSTREAM_LABEL`: Optional friendly name for the downstream dependency
 - `HOSTNAME`: Pod hostname (automatically set by Kubernetes)

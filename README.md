@@ -204,13 +204,13 @@ Start with the built-in Azure Managed Prometheus Kubernetes dashboards, then fil
 
 All demos use the same [.NET 10 minimal API application](./shared/sample-app/), which provides:
 
-- **Main Page** (`/`) - Beautiful UI showing demo information and request inspector details
+- **Main Page** (`/`) - Beautiful UI showing demo information, a backend banner, pod identity, and request inspector details
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) - Compatibility, liveness, and readiness endpoints
-- **API Info** (`/api/info`) - JSON metadata and request inspector endpoint with the current request ID
+- **API Info** (`/api/info`) - JSON metadata, backend identity, and request inspector endpoint with the current request ID
 - **Downstream Call** (`/api/call`, `/api/orders`) - Optional environment-driven service-to-service call used by Demo 04
 - **Request Tracing** - Accepts or generates `X-Request-Id`, returns it as a response header, forwards it downstream, and includes it in application logs
 
-The application displays which demo and ingress type is running, making it easy to verify successful deployment.
+The application displays the configured backend banner, app version, and pod name in both the browser and `/api/info` output so blue/green, canary, weighted, and header-routing demos are obvious during refreshes and curl loops.
 
 Trace one request through the application logs:
 
