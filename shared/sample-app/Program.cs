@@ -284,7 +284,7 @@ static ServiceInfo CreateServiceInfo(HttpContext context)
     var version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0";
     var banner = Environment.GetEnvironmentVariable("APP_BANNER");
     var downstreamUrl = Environment.GetEnvironmentVariable("DOWNSTREAM_URL") ?? string.Empty;
-    var displayBanner = string.IsNullOrWhiteSpace(banner) ? $"Backend {version}" : banner;
+    var bannerText = string.IsNullOrWhiteSpace(banner) ? $"Backend {version}" : banner;
 
     return new ServiceInfo(
         serviceName,
@@ -292,8 +292,8 @@ static ServiceInfo CreateServiceInfo(HttpContext context)
         demoType,
         hostname,
         version,
-        displayBanner,
-        $"{displayBanner} | pod {hostname}",
+        bannerText,
+        $"{bannerText} | pod {hostname}",
         context.Items[RequestIdItemKey] as string ?? context.TraceIdentifier,
         string.IsNullOrWhiteSpace(downstreamUrl) ? null : downstreamUrl,
         "Running",
@@ -433,10 +433,9 @@ static bool IsGatewayHeader(string headerName)
 static Theme CreateTheme(string version)
 {
     var themeName = Environment.GetEnvironmentVariable("APP_THEME");
-    var defaultThemeName = version.Contains("v2", StringComparison.OrdinalIgnoreCase)
-        || version.Contains("green", StringComparison.OrdinalIgnoreCase)
-            ? "green"
-            : "blue";
+    var isGreenVersion = version.Contains("v2", StringComparison.OrdinalIgnoreCase)
+        || version.Contains("green", StringComparison.OrdinalIgnoreCase);
+    var defaultThemeName = isGreenVersion ? "green" : "blue";
 
     var theme = (string.IsNullOrWhiteSpace(themeName) ? defaultThemeName : themeName).Trim().ToLowerInvariant() switch
     {
@@ -458,12 +457,13 @@ static string? NormalizeColor(string? color)
     }
 
     var trimmed = color.Trim();
-    if (trimmed.Length is not (4 or 7) || trimmed[0] != '#')
+    if (trimmed[0] != '#')
     {
         return null;
     }
 
-    return trimmed[1..].All(Uri.IsHexDigit) ? trimmed : null;
+    var hex = trimmed[1..];
+    return hex.Length is 3 or 6 && hex.All(Uri.IsHexDigit) ? trimmed : null;
 }
 
 static string Display(string? value)
