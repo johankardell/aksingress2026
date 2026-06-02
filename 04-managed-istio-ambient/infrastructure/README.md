@@ -61,4 +61,4 @@ cd 04-managed-istio-ambient
 ./scripts/cleanup.sh
 ```
 
-The cleanup script deletes only `rg-04-istio-ambient-demo` and Kubernetes resources. Delete `rg-aksdemo-shared` manually only after all demos that reuse the shared ACR/Grafana resources are removed.
+The cleanup script permanently deletes demo-owned Log Analytics workspaces, then deletes only `rg-04-istio-ambient-demo` and Kubernetes resources. Delete `rg-aksdemo-shared` manually only after all demos that reuse the shared ACR/Grafana resources are removed.

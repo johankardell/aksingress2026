@@ -120,7 +120,7 @@ Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is 
 az group delete --name rg-01-nginx-ingress-demo --yes --no-wait
 ```
 
-This deletes only the demo resource group. Delete `rg-aksdemo-shared` separately only after all demos are cleaned up and you no longer need the shared ACR, Azure Monitor workspace, or Grafana dashboards.
+This permanently deletes demo-owned Log Analytics workspaces and then deletes only the demo resource group. Delete `rg-aksdemo-shared` separately only after all demos are cleaned up and you no longer need the shared ACR, Azure Monitor workspace, or Grafana dashboards.
 
 ## Next Steps
 

@@ -710,7 +710,7 @@ az network application-gateway waf-policy show \
 
 ## Clean Up
 
-Demo cleanup scripts leave the shared ACR in `rg-aksdemo-shared` so another demo can continue pulling the shared image. After all demos are removed, delete the shared registry resource group manually if you no longer need it:
+Demo cleanup scripts permanently delete demo-owned Log Analytics workspaces before deleting the demo resource group. They leave the shared ACR in `rg-aksdemo-shared` so another demo can continue pulling the shared image. After all demos are removed, delete the shared registry resource group manually if you no longer need it:
 
 ```bash
 az group delete --name rg-aksdemo-shared --yes --no-wait  # Only after all demos and shared Grafana use are finished

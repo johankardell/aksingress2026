@@ -140,7 +140,7 @@ kubectl logs -n mesh-demo -l app=frontend --since=5m
 ./scripts/cleanup.sh
 ```
 
-The script deletes only the Demo 04 resource group and Kubernetes resources. Shared ACR/Grafana/Prometheus workspace resources in `rg-aksdemo-shared` remain for the other demos.
+The script permanently deletes demo-owned Log Analytics workspaces, then deletes the Demo 04 resource group and Kubernetes resources. Shared ACR/Grafana/Prometheus workspace resources in `rg-aksdemo-shared` remain for the other demos.
 
 ## Notes and Risks
 

@@ -15,6 +15,31 @@ SHARED_ACR_RESOURCE_GROUP="rg-aksdemo-shared"
 RESOURCE_GROUP="rg-01-nginx-ingress-demo"
 APP_NAMESPACE="demo"
 
+purge_log_analytics_workspaces() {
+  local workspace_names
+  workspace_names=$(az monitor log-analytics workspace list \
+    --resource-group "$RESOURCE_GROUP" \
+    --query "[].name" \
+    --output tsv 2>/dev/null || true)
+
+  if [ -z "$workspace_names" ]; then
+    echo "No Log Analytics workspaces found in $RESOURCE_GROUP"
+    return
+  fi
+
+  echo "$workspace_names" | while IFS= read -r workspace_name; do
+    if [ -n "$workspace_name" ]; then
+      echo "Permanently deleting Log Analytics workspace: $workspace_name"
+      az monitor log-analytics workspace delete \
+        --resource-group "$RESOURCE_GROUP" \
+        --workspace-name "$workspace_name" \
+        --force true \
+        --yes \
+        --output none
+    fi
+  done
+}
+
 # Confirm deletion
 echo -e "${RED}WARNING: This will delete the following:${NC}"
 echo -e "  - Resource Group: ${RESOURCE_GROUP}"
@@ -31,7 +56,7 @@ if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
     exit 0
 fi
 
-echo -e "${YELLOW}[1/2] Deleting Kubernetes resources...${NC}"
+echo -e "${YELLOW}[1/3] Deleting Kubernetes resources...${NC}"
 # Delete ingress first to release public IP
 kubectl delete ingress nginx-demo-ingress -n "$APP_NAMESPACE" --ignore-not-found=true
 kubectl delete deployment nginx-demo-app -n "$APP_NAMESPACE" --ignore-not-found=true
@@ -45,7 +70,12 @@ kubectl delete namespace ingress-nginx --ignore-not-found=true
 echo -e "${GREEN}✓ Kubernetes resources deleted${NC}"
 echo
 
-echo -e "${YELLOW}[2/2] Deleting Azure resources...${NC}"
+echo -e "${YELLOW}[2/3] Permanently deleting Log Analytics workspaces...${NC}"
+purge_log_analytics_workspaces
+echo -e "${GREEN}✓ Log Analytics workspace purge complete${NC}"
+echo
+
+echo -e "${YELLOW}[3/3] Deleting Azure resources...${NC}"
 az group delete \
   --name $RESOURCE_GROUP \
   --yes \
