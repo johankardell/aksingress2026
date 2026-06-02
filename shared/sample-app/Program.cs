@@ -433,9 +433,16 @@ static bool IsGatewayHeader(string headerName)
 static Theme CreateTheme(string version)
 {
     var themeName = Environment.GetEnvironmentVariable("APP_THEME");
-    var isGreenVersion = version.Contains("v2", StringComparison.OrdinalIgnoreCase)
-        || version.Contains("green", StringComparison.OrdinalIgnoreCase);
-    var defaultThemeName = isGreenVersion ? "green" : "blue";
+    var versionTheme = version.Split('-', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+    var defaultThemeName = "blue";
+    if (versionTheme is not null && IsKnownTheme(versionTheme))
+    {
+        defaultThemeName = versionTheme;
+    }
+    else if (version.Equals("v2", StringComparison.OrdinalIgnoreCase))
+    {
+        defaultThemeName = "green";
+    }
 
     var theme = (string.IsNullOrWhiteSpace(themeName) ? defaultThemeName : themeName).Trim().ToLowerInvariant() switch
     {
@@ -449,6 +456,15 @@ static Theme CreateTheme(string version)
     return new Theme(NormalizeColor(color) ?? theme.Color, theme.Background);
 }
 
+static bool IsKnownTheme(string themeName)
+{
+    return themeName.Equals("blue", StringComparison.OrdinalIgnoreCase)
+        || themeName.Equals("green", StringComparison.OrdinalIgnoreCase)
+        || themeName.Equals("orange", StringComparison.OrdinalIgnoreCase)
+        || themeName.Equals("canary", StringComparison.OrdinalIgnoreCase)
+        || themeName.Equals("purple", StringComparison.OrdinalIgnoreCase);
+}
+
 static string? NormalizeColor(string? color)
 {
     if (string.IsNullOrWhiteSpace(color))
@@ -457,7 +473,7 @@ static string? NormalizeColor(string? color)
     }
 
     var trimmed = color.Trim();
-    if (trimmed.Length == 0 || trimmed[0] != '#')
+    if (!trimmed.StartsWith('#'))
     {
         return null;
     }
