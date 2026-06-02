@@ -1,18 +1,19 @@
 # Copilot Instructions for AKS Ingress Demo Repository
 
-This repository contains three independent AKS ingress demos:
+This repository contains four independent AKS ingress/gateway/service networking demos:
 
 | Demo | Path | Purpose |
 | --- | --- | --- |
 | 01 | `01-nginx-ingress/` | NGINX Ingress Controller as a traditional/legacy comparison pattern. |
 | 02 | `02-envoy-gateway-api/` | Gateway API with Envoy Gateway, using role-oriented Gateway/HTTPRoute ownership. |
 | 03 | `03-agc-for-containers/` | Azure Application Gateway for Containers (AGC), Azure-native Gateway API implementation. |
+| 04 | `04-managed-istio-ambient/` | Managed Istio Ambient Mesh with Azure Kubernetes Application Network preview, Gateway API ingress, waypoint telemetry, Prometheus, and Kiali. |
 
-All demos are self-contained with Bicep infrastructure, Kubernetes manifests, Bash deploy/cleanup scripts, and documentation. They share the .NET 10 sample app in `shared/sample-app/`.
+All demos are self-contained with Bicep infrastructure, Kubernetes manifests, Bash deploy/cleanup scripts, and documentation. They share the .NET 10 sample app in `shared/sample-app/`; Demo 04 runs it as `frontend`, `orders`, and `inventory` with environment-driven downstream calls.
 
 ## Baseline Azure configuration
 
-- Region: `swedencentral`.
+- Region: `swedencentral` for Demos 01-03; Demo 04 intentionally uses `northeurope` for Azure Kubernetes Application Network preview availability.
 - AKS Kubernetes version: `1.35.4` unless explicitly changed after verifying non-preview availability.
 - Node VM SKU: `Standard_B4as_v2` (AMD64/x64, 4 vCPU, 16 GiB).
 - AKS SKU: `Base` / `Free`.
@@ -20,13 +21,15 @@ All demos are self-contained with Bicep infrastructure, Kubernetes manifests, Ba
   - Demo 01: `rg-01-nginx-ingress-demo`
   - Demo 02: `rg-02-envoy-gateway-demo`
   - Demo 03: `rg-03-agc-containers-demo`
-- AKS managed resource groups use the demo resource group name plus `-infra`.
+  - Demo 04: `rg-04-istio-ambient-demo`
+- AKS managed resource groups use the demo resource group name plus `-infra`; Demo 04 uses `rg-04-istio-ambient-demo-infra`.
 
-Before changing AKS versions, VM SKUs, or region, verify Sweden Central support with:
+Before changing AKS versions, VM SKUs, or region, verify Sweden Central support for Demos 01-03 and North Europe preview support for Demo 04 with:
 
 ```bash
 az aks get-versions --location swedencentral --output table
 az vm list-skus --location swedencentral --size <SKU> --all --output table
+az appnet list-versions --location northeurope --output table
 ```
 
 ## Infrastructure and identity
@@ -46,16 +49,16 @@ az vm list-skus --location swedencentral --size <SKU> --all --output table
 - Do not use `--platform linux/arm64` or `FROM --platform=...`; the selected nodes are AMD64/x64 and ACR Tasks scanning has failed on that syntax.
 - Keep the sample app as a .NET 10 minimal API at `shared/sample-app/sample-app.csproj`.
 - Keep the multi-stage Dockerfile based on `mcr.microsoft.com/dotnet/sdk:10.0` and `mcr.microsoft.com/dotnet/aspnet:10.0`.
-- Preserve endpoints `/`, `/health`, and `/api/info`; Kubernetes probes depend on `/health`.
-- Keep demo-specific display text configurable through Kubernetes environment variables.
+- Preserve endpoints `/`, `/health`, `/api/info`, `/api/call`, and `/api/orders`; Kubernetes probes depend on `/health`.
+- Keep demo-specific display text and downstream call targets configurable through Kubernetes environment variables.
 
 ## Kubernetes manifests
 
 - Use stable Kubernetes APIs only.
 - Include resource requests/limits plus liveness and readiness probes.
 - Use `imagePullPolicy: Always` for demo deployments.
-- Keep app resources in the `default` namespace unless a demo requires otherwise.
-- Demo 02 and Demo 03 use Gateway API `v1` resources.
+- Keep app resources in the `default` namespace unless a demo requires otherwise; Demo 04 uses `mesh-demo` with ambient labels.
+- Demo 02, Demo 03, and Demo 04 use Gateway API `v1` resources.
 
 ## Scripts
 
@@ -71,6 +74,7 @@ az vm list-skus --location swedencentral --size <SKU> --all --output table
 - Demo 01: describe Kubernetes Ingress as stable but feature-frozen, not deprecated; use the NGINX Ingress Controller Helm chart and include migration guidance toward Gateway API/AGC.
 - Demo 02: use Gateway API v1 and the repo's existing Envoy Gateway deployment pattern; emphasize platform-owned Gateway/GatewayClass and app-owned HTTPRoute.
 - Demo 03: install AGC ALB Controller with `oci://mcr.microsoft.com/application-lb/charts/alb-controller`; do not use AKS Web App Routing or `az aks approuting`; create `ApplicationLoadBalancer` before Gateway/HTTPRoute resources; highlight Azure integration, WAF readiness, and Azure Monitor.
+- Demo 04: use Azure Kubernetes Application Network preview in `northeurope`; do not switch this demo to the classic AKS Istio add-on. Keep Azure CNI Overlay with Cilium dataplane/policy where supported, use `istio.io/dataplane-mode=ambient`, a waypoint `Gateway` for L7 telemetry, Gateway API ingress, Kubernetes service DNS for `frontend` → `orders` → `inventory`, and Prometheus/Kiali visualization.
 
 ## Documentation
 
@@ -89,7 +93,7 @@ az vm list-skus --location swedencentral --size <SKU> --all --output table
 ## Never do
 
 - Do not commit secrets, kubeconfigs, tokens, credentials, or personal tenant identifiers.
-- Do not use preview/beta Azure or Kubernetes features without explicit approval.
-- Do not change away from Sweden Central without verification and documentation updates.
+- Do not use preview/beta Azure or Kubernetes features without explicit user approval; Demo 04 has explicit approval for Azure Kubernetes Application Network preview.
+- Do not change Demos 01-03 away from Sweden Central without verification and documentation updates; Demo 04 must remain in a supported Application Network preview region unless docs/scripts are updated.
 - Do not require local Docker for deployment.
 - Do not remove cleanup scripts.

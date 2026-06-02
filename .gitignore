@@ -12,6 +12,7 @@ TestResults/
 01-nginx-ingress/infrastructure/*.json
 02-envoy-gateway-api/infrastructure/*.json
 03-agc-for-containers/infrastructure/*.json
+04-managed-istio-ambient/infrastructure/*.json
 shared/infrastructure/*.json
 *.bicep.json
 

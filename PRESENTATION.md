@@ -14,7 +14,7 @@ Level 400 — deep dive
 
 **Speaker notes:**
 We will cover four shifts that change how we build platforms on AKS this year:
-1. Istio: sidecar → ambient mode (now generally available in the AKS-managed Istio add-on).
+1. Istio: sidecar → ambient mode, with the repo demo using Azure Kubernetes Application Network preview because the classic AKS Istio add-on does not provide this Gateway API ambient path.
 2. Ingress → Gateway API (the new standard, role-oriented, vendor-neutral).
 3. Application Gateway for Containers (AGC) — the Azure-native Gateway API implementation using the ALB Controller and `ApplicationLoadBalancer` CRD, successor to AGIC.
 4. Managed Argo CD on AKS — a first-class GitOps option next to managed Flux.
@@ -165,65 +165,31 @@ Walk through the seven steps live. Emphasize that the app sends *plain* TCP — 
 
 ---
 
-## Slide 7 — Enabling ambient Istio on AKS
+## Slide 7 — Enabling managed ambient on AKS
 
 **➡ Move to speaker notes (script):**
 
 ```bash
-# Variables
-RG=rg-mesh-demo
-LOC=swedencentral
-AKS=aks-mesh-demo
+# Demo 04 uses an explicit preview exception: Azure Kubernetes Application Network in North Europe.
+cd 04-managed-istio-ambient
 
-# 1. Create resource group + AKS (Free tier, K8s 1.35.4, Sweden Central)
-az group create -n $RG -l $LOC
+# 1. Verify preview regional support before a workshop.
+az appnet list-versions --location northeurope -o table
+az aks get-versions --location northeurope --output table
+az vm list-skus --location northeurope --size Standard_B4as_v2 --all --output table
 
-az aks create \
-  -g $RG -n $AKS \
-  --location $LOC \
-  --kubernetes-version 1.35.4 \
-  --tier free \
-  --node-vm-size Standard_B4as_v2 \
-  --node-count 2 \
-  --network-plugin azure \
-  --network-dataplane cilium \
-  --network-policy cilium \
-  --enable-oidc-issuer \
-  --enable-workload-identity \
-  --generate-ssh-keys
+# 2. Deploy AKS, Application Network membership, managed Gateway API, app, Prometheus, and Kiali.
+./scripts/deploy.sh
 
-az aks get-credentials -g $RG -n $AKS
+# 3. Generate traffic for the graph.
+./scripts/generate-traffic.sh
 
-# 2. Enable the AKS-managed Istio add-on (ambient profile)
-az aks mesh enable \
-  -g $RG -n $AKS \
-  --revision asm-1-24
-
-# 3. Switch the add-on to ambient profile (AKS exposes via mesh profile)
-az aks mesh upgrade complete -g $RG -n $AKS
-
-# 4. Opt a namespace into ambient (no sidecar injection!)
-kubectl label namespace demo istio.io/dataplane-mode=ambient
-
-# 5. (Optional) Add a Waypoint for L7 policy on a namespace
-kubectl apply -n demo -f - <<'YAML'
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: waypoint
-  labels:
-    istio.io/waypoint-for: service
-spec:
-  gatewayClassName: istio-waypoint
-  listeners:
-  - name: mesh
-    port: 15008
-    protocol: HBONE
-YAML
+# 4. Open Kiali locally.
+kubectl port-forward -n kiali-system svc/kiali 20001:20001
 ```
 
 **Speaker notes:**
-On AKS, ambient is delivered through the managed Istio add-on. You don't run istiod yourself; AKS does. You opt namespaces in with a label. Waypoints are deployed as standard Gateway API `Gateway` objects — that is a nice preview of part 2 of the talk.
+For this repo, the managed ambient demo does **not** use the classic AKS Istio service mesh add-on. Current AKS add-on constraints make Azure Kubernetes Application Network preview the managed ambient path for the requested Gateway API ingress and east-west mesh visualization. The namespace is still labeled with `istio.io/dataplane-mode=ambient`, waypoints are expressed as Gateway API resources, and Kiali is used to explain ztunnel and waypoint traffic when the preview telemetry is available.
 
 ---
 
@@ -331,7 +297,7 @@ Show the contrast. With Ingress, the app developer files a PR that touches a clu
    ┌──────────────────────  AKS Cluster  ─────────────────────┐
    │                                                          │
    │  envoy-gateway (control plane, Deployment)               │
-   │      │  watches GatewayClass=envoy-gateway + Gateway     │
+   │      │  watches GatewayClass, Gateway, and HTTPRoute     │
    │      ▼  programs                                          │
    │  Envoy data plane Pods (one Deployment per Gateway)       │
    │      ▲                                                    │
@@ -395,7 +361,7 @@ YAML
 ```
 
 **Speaker notes:**
-Envoy Gateway is the upstream-reference implementation. The current demo installs the stable upstream release from its published `install.yaml`, verifies `GatewayClass/envoy-gateway`, then applies the application `Gateway` and `HTTPRoute` in the default namespace. On AKS, Envoy's Service of type LoadBalancer triggers an Azure SLB and public IP — same north-south model you already use, but routing is portable Gateway API YAML rather than controller-specific annotations. The repository deployment flow is split into infra, image build, and Kubernetes configuration phases so only the final phase touches the active `kubectl` context.
+Envoy Gateway is the upstream-reference implementation. The current demo script applies the stable upstream v1.2.3 `install.yaml`, verifies `GatewayClass/envoy-gateway`, then applies the application `Gateway` and `HTTPRoute` in the default namespace. On AKS, Envoy's Service of type LoadBalancer triggers an Azure SLB and public IP — same north-south model you already use, but routing is portable Gateway API YAML rather than controller-specific annotations. The repository deployment flow is split into infra, image build, and Kubernetes configuration phases so only the final phase touches the active `kubectl` context.
 
 ---
 
@@ -580,7 +546,7 @@ Show this last in the ingress part of the talk. It is what many teams have had i
 - **Enterprise edge features for free**: WAF, mTLS to backend, autoscaled PaaS, Azure Monitor integration
 
 **Speaker notes:**
-This is the slide to land the point of part 2 + part 3: Gateway API is the *contract*, AGC is the *Azure-native implementation*. The demo keeps the `Gateway`, `HTTPRoute`, service, and deployment in `default` for readability, while the AGC infrastructure object lives in `alb-infra` and the controller lives in `azure-alb-system`. In production you can split the Gateway and routes across platform/app namespaces; the API shape still lets teams write portable routing YAML while the platform team chooses Envoy in dev or AGC in production.
+This is the slide to land the point of the Envoy Gateway and AGC demos: Gateway API is the *contract*, AGC is the *Azure-native implementation*. The demo keeps the `Gateway`, `HTTPRoute`, service, and deployment in `default` for readability, while the AGC infrastructure object lives in `alb-infra` and the controller lives in `azure-alb-system`. In production you can split the Gateway and routes across platform/app namespaces; the API shape still lets teams write portable routing YAML while the platform team chooses Envoy in dev or AGC in production.
 
 ---
 
@@ -727,3 +693,4 @@ Thank you. Questions?
 - Application Gateway for Containers + ALB Controller: aka.ms/agc
 - Managed Argo CD on AKS: aka.ms/aks/argocd
 - AKS managed Istio add-on: learn.microsoft.com/azure/aks/istio-about
+- Azure Kubernetes Application Network preview: learn.microsoft.com/azure/application-network/

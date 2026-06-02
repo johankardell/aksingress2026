@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kiali-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mesh-demo-kiali-notes
+  namespace: kiali-system
+data:
+  README: |
+    Kiali is installed by scripts/configure-kubernetes.sh using the kiali-server Helm chart.
+    It points to http://prometheus-server.monitoring.svc.cluster.local for in-cluster telemetry.
+    Access it with: kubectl port-forward -n kiali-system svc/kiali 20001:20001

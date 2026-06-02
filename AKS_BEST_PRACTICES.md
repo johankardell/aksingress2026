@@ -2,7 +2,7 @@
 
 ## Overview
 
-All three demos (01-nginx-ingress, 02-envoy-gateway-api, 03-agc-for-containers) have been updated with AKS best practices and production-ready settings.
+Demos 01-04 have been updated with AKS best practices and production-ready settings. Demo 04 additionally documents its approved Azure Kubernetes Application Network preview exception.
 
 ## Enabled Features
 
@@ -436,5 +436,5 @@ Expected output:
 ---
 
 **Last Updated:** May 21, 2026  
-**Applies to:** All three demos  
+**Applies to:** All four demos  
 **AKS API Version:** 2024-01-01

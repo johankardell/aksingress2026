@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: mesh-demo
+  labels:
+    app: frontend
+    service: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        service: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ${ACR_LOGIN_SERVER}/aks-ingress-demo:${IMAGE_TAG}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: SERVICE_NAME
+          value: frontend
+        - name: DEMO_NAME
+          value: Managed Istio Ambient Mesh - Frontend
+        - name: DEMO_TYPE
+          value: Azure Kubernetes Application Network + Gateway API
+        - name: APP_VERSION
+          value: v1
+        - name: DOWNSTREAM_LABEL
+          value: orders
+        - name: DOWNSTREAM_URL
+          value: http://orders.mesh-demo.svc.cluster.local/api/call
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: mesh-demo
+  labels:
+    app: frontend
+    service: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
