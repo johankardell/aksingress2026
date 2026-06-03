@@ -149,7 +149,7 @@ Key Differences from NGINX Ingress:
 │  │                          │                               ││
 │  │                          ▼                               ││
 │  │  ┌────────────────────────────────────────────────────┐ ││
-│  │  │  Default Namespace (Application Team)              │ ││
+│  │  │  demo Namespace (Application Team)                 │ ││
 │  │  │                                                     │ ││
 │  │  │  Gateway: envoy-demo-gateway                       │ ││
 │  │  │      │                                              │ ││
@@ -330,17 +330,21 @@ ensure_sample_app_image "$ACR_NAME" "../../shared/sample-app" "aks-ingress-demo"
 #### Step 4: Install Envoy Gateway
 
 ```bash
-# Install using kubectl
-kubectl apply --server-side --force-conflicts -f https://github.com/envoyproxy/gateway/releases/download/latest/install.yaml
+# Install using kubectl (pinned to the stable release used by the scripts)
+kubectl apply --server-side --force-conflicts -f https://github.com/envoyproxy/gateway/releases/download/v1.2.3/install.yaml
 
 # Wait for deployment
 kubectl wait --for=condition=available --timeout=300s deployment/envoy-gateway -n envoy-gateway-system
 ```
 
-#### Step 5: Verify GatewayClass
+#### Step 5: Create and verify the GatewayClass
+
+The Envoy Gateway install does not ship a GatewayClass, so apply the one in this repo:
 
 ```bash
-# Check that GatewayClass is available
+kubectl apply -f kubernetes/gatewayclass.yaml
+
+# Check that the GatewayClass is available
 kubectl get gatewayclass
 ```
 

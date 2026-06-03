@@ -37,7 +37,7 @@ Key tradeoffs compared with Gateway API:
 │  │                          │                            │  │
 │  │                          ▼                            │  │
 │  │  ┌────────────────────────────────────────────────┐  │  │
-│  │  │  Default Namespace                             │  │  │
+│  │  │  demo Namespace                                │  │  │
 │  │  │                                                 │  │  │
 │  │  │  Ingress: nginx-demo-ingress                   │  │  │
 │  │  │      │                                          │  │  │
@@ -182,12 +182,14 @@ ensure_sample_app_image "$ACR_NAME" "../../shared/sample-app" "aks-ingress-demo"
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 
-# Install controller
-helm install ingress-nginx ingress-nginx/ingress-nginx \
+# Install controller (matches scripts/configure-kubernetes.sh)
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   --create-namespace \
   --namespace ingress-nginx \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz \
   --set controller.service.externalTrafficPolicy=Local \
-  --wait
+  --wait \
+  --timeout 5m
 ```
 
 #### Step 5: Deploy Application

@@ -60,8 +60,8 @@
           <mxGeometry x="440" y="620" width="140" height="50" as="geometry" />
         </mxCell>
         
-        <!-- Default Namespace -->
-        <mxCell id="default-ns" value="Namespace: default (Application)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=10;align=left;" vertex="1" parent="1">
+        <!-- demo Namespace -->
+        <mxCell id="default-ns" value="Namespace: demo (Application)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=10;align=left;" vertex="1" parent="1">
           <mxGeometry x="690" y="490" width="270" height="190" as="geometry" />
         </mxCell>
         
