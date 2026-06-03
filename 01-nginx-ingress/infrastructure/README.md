@@ -80,7 +80,7 @@ az deployment group create \
 ```bash
 az deployment group show \
   --resource-group rg-01-nginx-ingress-demo \
-  --name main \
+  --name nginx-demo-deployment \
   --query properties.outputs
 ```
 

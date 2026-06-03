@@ -57,7 +57,7 @@ az appnet list-versions --location northeurope --output table
 - Use stable Kubernetes APIs only.
 - Include resource requests/limits plus liveness and readiness probes.
 - Use `imagePullPolicy: Always` for demo deployments.
-- Keep app resources in the `default` namespace unless a demo requires otherwise; Demo 04 uses `mesh-demo` with ambient labels.
+- Keep app resources in the `demo` namespace for Demos 01-03; Demo 04 uses `mesh-demo` with ambient labels (plus `kiali-system` for Kiali).
 - Demo 02, Demo 03, and Demo 04 use Gateway API `v1` resources.
 
 ## Scripts

@@ -8,8 +8,8 @@ from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
-ROOT = Path("/home/johan/dev/github/aksingress2026")
-MD   = (ROOT / "PRESENTATION.md").read_text()
+ROOT = Path(__file__).resolve().parent
+MD   = (ROOT / "PRESENTATION.md").read_text(encoding="utf-8")
 OUT  = ROOT / "PRESENTATION.pptx"
 
 # ---------- Theme ----------

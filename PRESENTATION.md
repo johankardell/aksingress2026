@@ -337,7 +337,7 @@ kubectl apply -f - <<'YAML'
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
-metadata: { name: envoy-demo-gateway, namespace: default }
+metadata: { name: envoy-demo-gateway, namespace: demo }
 spec:
   gatewayClassName: envoy-gateway
   listeners:
@@ -349,7 +349,7 @@ spec:
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: { name: envoy-demo-route, namespace: default }
+metadata: { name: envoy-demo-route, namespace: demo }
 spec:
   parentRefs:
   - { name: envoy-demo-gateway }
@@ -361,7 +361,7 @@ YAML
 ```
 
 **Speaker notes:**
-Envoy Gateway is the upstream-reference implementation. The current demo script applies the stable upstream v1.2.3 `install.yaml`, verifies `GatewayClass/envoy-gateway`, then applies the application `Gateway` and `HTTPRoute` in the default namespace. On AKS, Envoy's Service of type LoadBalancer triggers an Azure SLB and public IP — same north-south model you already use, but routing is portable Gateway API YAML rather than controller-specific annotations. The repository deployment flow is split into infra, image build, and Kubernetes configuration phases so only the final phase touches the active `kubectl` context.
+Envoy Gateway is the upstream-reference implementation. The current demo script applies the stable upstream v1.2.3 `install.yaml`, verifies `GatewayClass/envoy-gateway`, then applies the application `Gateway` and `HTTPRoute` in the `demo` namespace. On AKS, Envoy's Service of type LoadBalancer triggers an Azure SLB and public IP — same north-south model you already use, but routing is portable Gateway API YAML rather than controller-specific annotations. The repository deployment flow is split into infra, image build, and Kubernetes configuration phases so only the final phase touches the active `kubectl` context.
 
 ---
 
@@ -456,7 +456,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: agc-demo-gateway
-  namespace: default
+  namespace: demo
   annotations:
     alb.networking.azure.io/alb-namespace: alb-infra
     alb.networking.azure.io/alb-name: alb
@@ -467,7 +467,7 @@ spec:
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: { name: agc-demo-route, namespace: default }
+metadata: { name: agc-demo-route, namespace: demo }
 spec:
   parentRefs: [ { name: agc-demo-gateway } ]
   rules:
@@ -513,7 +513,7 @@ Show this last in the ingress part of the talk. It is what many teams have had i
 ## Slide 15 — End-to-end: AGC + Gateway API + AKS
 
 ```
-    ┌─ Application namespace: default ─────────────────────────────┐
+    ┌─ Application namespace: demo ────────────────────────────────┐
     │  Gateway (azure-alb-external)                                │
     │    annotations: alb-name=alb, alb-namespace=alb-infra         │
     │       ▲                                                       │

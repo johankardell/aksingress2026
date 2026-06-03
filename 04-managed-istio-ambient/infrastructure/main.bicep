@@ -57,7 +57,7 @@ param maintenanceStartTime string = '02:00'
 @maxValue(24)
 param maintenanceDurationHours int = 4
 
-@description('Fixed UTC offset for AKS maintenance windows. +01:00 aligns to Sweden standard time; use +02:00 for Swedish summer time.')
+@description('Fixed UTC offset for AKS maintenance windows. +01:00 aligns to North Europe summer time (Irish Summer Time); use +00:00 in winter.')
 param maintenanceUtcOffset string = '+01:00'
 
 @description('Tags for all resources')
