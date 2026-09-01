@@ -436,5 +436,5 @@ Expected output:
 ---
 
 **Last Updated:** May 21, 2026  
-**Applies to:** All four demos  
+**Applies to:** All five demos  
 **AKS API Version:** 2024-01-01

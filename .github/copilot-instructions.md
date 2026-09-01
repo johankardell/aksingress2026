@@ -1,6 +1,6 @@
 # Copilot Instructions for AKS Ingress Demo Repository
 
-This repository contains four independent AKS ingress/gateway/service networking demos:
+This repository contains five independent AKS ingress/gateway/service networking demos:
 
 | Demo | Path | Purpose |
 | --- | --- | --- |
@@ -8,12 +8,13 @@ This repository contains four independent AKS ingress/gateway/service networking
 | 02 | `02-envoy-gateway-api/` | Gateway API with Envoy Gateway, using role-oriented Gateway/HTTPRoute ownership. |
 | 03 | `03-agc-for-containers/` | Azure Application Gateway for Containers (AGC), Azure-native Gateway API implementation. |
 | 04 | `04-managed-istio-ambient/` | Managed Istio Ambient Mesh with Azure Kubernetes Application Network preview, Gateway API ingress, waypoint telemetry, Prometheus, and Kiali. |
+| 05 | `05-afd-appgw/` | Azure Front Door (WAF) at the edge, fronting a classic Application Gateway v2 that load-balances into AKS via the AGIC add-on. |
 
 All demos are self-contained with Bicep infrastructure, Kubernetes manifests, Bash deploy/cleanup scripts, and documentation. They share the .NET 10 sample app in `shared/sample-app/`; Demo 04 runs it as `frontend`, `orders`, and `inventory` with environment-driven downstream calls.
 
 ## Baseline Azure configuration
 
-- Region: `swedencentral` for Demos 01-03; Demo 04 intentionally uses `northeurope` for Azure Kubernetes Application Network preview availability.
+- Region: `swedencentral` for Demos 01-03 and 05; Demo 04 intentionally uses `northeurope` for Azure Kubernetes Application Network preview availability.
 - AKS Kubernetes version: `1.35.4` unless explicitly changed after verifying non-preview availability.
 - Node VM SKU: `Standard_B4as_v2` (AMD64/x64, 4 vCPU, 16 GiB).
 - AKS SKU: `Base` / `Free`.
@@ -22,6 +23,7 @@ All demos are self-contained with Bicep infrastructure, Kubernetes manifests, Ba
   - Demo 02: `rg-02-envoy-gateway-demo`
   - Demo 03: `rg-03-agc-containers-demo`
   - Demo 04: `rg-04-istio-ambient-demo`
+  - Demo 05: `rg-05-afd-appgw-demo`
 - AKS managed resource groups use the demo resource group name plus `-infra`; Demo 04 uses `rg-04-istio-ambient-demo-infra`.
 
 Before changing AKS versions, VM SKUs, or region, verify Sweden Central support for Demos 01-03 and North Europe preview support for Demo 04 with:
@@ -57,8 +59,8 @@ az appnet list-versions --location northeurope --output table
 - Use stable Kubernetes APIs only.
 - Include resource requests/limits plus liveness and readiness probes.
 - Use `imagePullPolicy: Always` for demo deployments.
-- Keep app resources in the `demo` namespace for Demos 01-03; Demo 04 uses `mesh-demo` with ambient labels (plus `kiali-system` for Kiali).
-- Demo 02, Demo 03, and Demo 04 use Gateway API `v1` resources.
+- Keep app resources in the `demo` namespace for Demos 01-03 and 05; Demo 04 uses `mesh-demo` with ambient labels (plus `kiali-system` for Kiali).
+- Demo 02, Demo 03, and Demo 04 use Gateway API `v1` resources; Demo 05 uses a classic `networking.k8s.io/v1` `Ingress` resource reconciled by the AGIC add-on.
 
 ## Scripts
 
@@ -75,6 +77,7 @@ az appnet list-versions --location northeurope --output table
 - Demo 02: use Gateway API v1 and the repo's existing Envoy Gateway deployment pattern; emphasize platform-owned Gateway/GatewayClass and app-owned HTTPRoute.
 - Demo 03: install AGC ALB Controller with `oci://mcr.microsoft.com/application-lb/charts/alb-controller`; do not use AKS Web App Routing or `az aks approuting`; create `ApplicationLoadBalancer` before Gateway/HTTPRoute resources; highlight Azure integration, WAF readiness, and Azure Monitor.
 - Demo 04: use Azure Kubernetes Application Network preview in `northeurope`; do not switch this demo to the classic AKS Istio add-on. Keep Azure CNI Overlay with Cilium dataplane/policy where supported, use `istio.io/dataplane-mode=ambient`, a waypoint `Gateway` for L7 telemetry, Gateway API ingress, Kubernetes service DNS for `frontend` → `orders` → `inventory`, and Prometheus/Kiali visualization.
+- Demo 05: Azure Front Door (Premium) with a WAF policy (Prevention mode, managed rule sets) is the internet entry point; a classic Application Gateway v2 (`Standard_v2`, no WAF since Front Door already enforces it) sits behind it as the Front Door origin; use the AKS `ingressApplicationGateway` (AGIC) add-on against that existing Application Gateway, and a standard `networking.k8s.io/v1` `Ingress` annotated `kubernetes.io/ingress.class: azure/application-gateway` — do not use Application Gateway for Containers or Gateway API for this demo.
 
 ## Documentation
 
@@ -94,6 +97,6 @@ az appnet list-versions --location northeurope --output table
 
 - Do not commit secrets, kubeconfigs, tokens, credentials, or personal tenant identifiers.
 - Do not use preview/beta Azure or Kubernetes features without explicit user approval; Demo 04 has explicit approval for Azure Kubernetes Application Network preview.
-- Do not change Demos 01-03 away from Sweden Central without verification and documentation updates; Demo 04 must remain in a supported Application Network preview region unless docs/scripts are updated.
+- Do not change Demos 01-03 or 05 away from Sweden Central without verification and documentation updates; Demo 04 must remain in a supported Application Network preview region unless docs/scripts are updated.
 - Do not require local Docker for deployment.
 - Do not remove cleanup scripts.

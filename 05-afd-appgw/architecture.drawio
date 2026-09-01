@@ -1,0 +1,152 @@
+<mxfile host="app.diagrams.net" modified="2026-09-01T09:00:00.000Z" agent="draw.io" version="24.0.0">
+  <diagram name="Front Door + Application Gateway Architecture" id="afd-appgw-arch">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Demo 05: Azure Front Door (WAF) + Application Gateway Architecture" style="text;html=1;strokeColor=#0066cc;fillColor=#cfe2f3;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="200" y="30" width="760" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Internet Cloud -->
+        <mxCell id="internet" value="Internet" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="500" y="100" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Front Door -->
+        <mxCell id="afd" value="Azure Front Door&#xa;Premium&#xa;Global edge + CDN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="510" y="200" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- WAF Policy -->
+        <mxCell id="waf" value="Front Door WAF Policy&#xa;Microsoft_DefaultRuleSet 2.1&#xa;+ Bot Manager Rule Set&#xa;Mode: Prevention" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="740" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Azure Subscription Box -->
+        <mxCell id="azure-sub" value="Azure Subscription" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=14;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="1080" height="500" as="geometry" />
+        </mxCell>
+
+        <!-- Resource Group -->
+        <mxCell id="rg" value="Resource Group: rg-05-afd-appgw-demo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="340" width="1000" height="440" as="geometry" />
+        </mxCell>
+
+        <!-- Virtual Network -->
+        <mxCell id="vnet" value="Virtual Network (10.6.0.0/16)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;verticalAlign=top;fontStyle=1;fontSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry x="360" y="380" width="680" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- App Gateway Subnet -->
+        <mxCell id="agw-subnet" value="Application Gateway Subnet&#xa;(10.6.4.0/24)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#d79b00;verticalAlign=top;fontStyle=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="770" y="420" width="240" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Application Gateway -->
+        <mxCell id="agw" value="Application Gateway v2&#xa;(Standard_v2)&#xa;Public IP + FQDN&#xa;Backend pool managed by AGIC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="800" y="450" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- AKS Subnet -->
+        <mxCell id="aks-subnet" value="AKS Subnet (10.6.0.0/22)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;verticalAlign=top;fontStyle=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="420" width="340" height="320" as="geometry" />
+        </mxCell>
+
+        <!-- Azure Container Registry -->
+        <mxCell id="acr" value="Azure Container Registry&#xa;(ACR)&#xa;aks-ingress-demo:sha-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="380" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- kube-system namespace -->
+        <mxCell id="kube-system" value="Namespace: kube-system" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;verticalAlign=top;fontStyle=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="420" y="450" width="140" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- AGIC add-on -->
+        <mxCell id="agic" value="AGIC add-on&#xa;(ingressApplicationGateway)&#xa;Pod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#7b1fa2;fontSize=9;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="435" y="480" width="110" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- demo namespace -->
+        <mxCell id="demo-ns" value="Namespace: demo (Application)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="420" y="560" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Ingress -->
+        <mxCell id="ingress" value="Ingress (v1)&#xa;afd-appgw-demo-ingress&#xa;azure/application-gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce5cd;strokeColor=#d79b00;fontSize=9;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="440" y="590" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Service -->
+        <mxCell id="service" value="Service&#xa;afd-appgw-demo-service&#xa;ClusterIP:80" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="580" y="590" width="110" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Deployment -->
+        <mxCell id="deployment" value="Deployment&#xa;afd-appgw-demo-app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="440" y="670" width="130" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pods" value="Pods (2x)&#xa;.NET 10 App" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="590" y="670" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Log Analytics -->
+        <mxCell id="logs" value="Log Analytics&#xa;Workspace&#xa;(Container Insights)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="480" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=3;strokeColor=#0066CC;" edge="1" parent="1" source="internet" target="afd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#B85450;" edge="1" parent="1" source="afd" target="waf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=3;strokeColor=#0066CC;" edge="1" parent="1" source="waf" target="agw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=3;strokeColor=#0066CC;" edge="1" parent="1" source="agw" target="service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=3;strokeColor=#0066CC;" edge="1" parent="1" source="service" target="deployment">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1;strokeColor=#FF6600;dashed=1;" edge="1" parent="1" source="agic" target="ingress">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1;strokeColor=#FF6600;dashed=1;" edge="1" parent="1" source="agic" target="agw">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="750" y="505" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;" edge="1" parent="1" source="acr" target="deployment">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Key Features Box -->
+        <mxCell id="features" value="✅ Global edge WAF (Front Door Premium)&#xa;✅ Regional Application Gateway v2&#xa;✅ AGIC-managed backend pool&#xa;✅ Classic Ingress v1 resource&#xa;✅ Azure Monitor Ready" style="text;html=1;strokeColor=#0066cc;fillColor=#cfe2f3;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=10;fontStyle=0" vertex="1" parent="1">
+          <mxGeometry x="120" y="570" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Architecture Note -->
+        <mxCell id="note" value="AGIC (add-on):&#xa;• Enabled via AKS addonProfiles.ingressApplicationGateway&#xa;• Reconciles App Gateway from Kubernetes Ingress&#xa;• Requires Contributor on the App Gateway resource group" style="text;html=1;strokeColor=#1565c0;fillColor=#e3f2fd;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="770" y="580" width="240" height="80" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

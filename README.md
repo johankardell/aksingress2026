@@ -1,32 +1,33 @@
 # AKS Ingress Comparison Demo 2026
 
-A comprehensive comparison of four different ingress and service networking approaches for Azure Kubernetes Service (AKS), demonstrating the evolution from traditional Ingress-based solutions to modern, Azure-native architectures.
+A comprehensive comparison of five different ingress and service networking approaches for Azure Kubernetes Service (AKS), demonstrating the evolution from traditional Ingress-based solutions to modern, Azure-native architectures.
 
-> **✅ Verified Configuration**: Demos 01-03 are tested and configured for **Sweden Central**. Demo 04 intentionally uses **North Europe** because Azure Kubernetes Application Network is a preview feature with regional availability. All demos use Kubernetes 1.35.4, Standard_B4as_v2 VMs, and the Free AKS tier where supported.
+> **✅ Verified Configuration**: Demos 01-03 and 05 are tested and configured for **Sweden Central**. Demo 04 intentionally uses **North Europe** because Azure Kubernetes Application Network is a preview feature with regional availability. All demos use Kubernetes 1.35.4, Standard_B4as_v2 VMs, and the Free AKS tier where supported.
 
 ## Overview
 
-This repository contains four independent demonstrations showcasing different ingress, gateway, and service networking solutions for AKS:
+This repository contains five independent demonstrations showcasing different ingress, gateway, and service networking solutions for AKS:
 
 1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional Ingress-based approach ([Mermaid](./01-nginx-ingress/architecture.mermaid.md), [Draw.io](./01-nginx-ingress/architecture.drawio))
 2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard ([Mermaid](./02-envoy-gateway-api/architecture.mermaid.md), [Draw.io](./02-envoy-gateway-api/architecture.drawio))
 3. **[Application Gateway for Containers](./03-agc-for-containers/)** - Azure-native ingress solution ([Mermaid](./03-agc-for-containers/architecture.mermaid.md), [Draw.io](./03-agc-for-containers/architecture.drawio))
 4. **[Managed Istio Ambient Mesh](./04-managed-istio-ambient/)** - Managed ambient mesh with Azure Kubernetes Application Network preview, Gateway API ingress, waypoint telemetry, Prometheus, and Kiali ([Mermaid](./04-managed-istio-ambient/architecture.mermaid.md), [Draw.io](./04-managed-istio-ambient/architecture.drawio))
+5. **[Azure Front Door (WAF) + Application Gateway](./05-afd-appgw/)** - Global edge WAF via Azure Front Door Premium, fronting a classic Application Gateway v2 that load-balances into AKS through the AGIC add-on ([Mermaid](./05-afd-appgw/architecture.mermaid.md), [Draw.io](./05-afd-appgw/architecture.drawio))
 
 Each demo deploys a .NET 10 sample application to its own AKS cluster. Demo 04 runs the same image as a three-service mesh chain (`frontend` → `orders` → `inventory`) to make east-west traffic visible.
 
 ## Demo Comparison
 
-| Feature | NGINX Ingress | Gateway API (Envoy) | AGC | Managed Ambient Mesh |
-|---------|---------------|---------------------|-----|----------------------|
-| **Status** | ⚠️ Legacy / Traditional | ✅ Modern Standard | ✅ Azure-Native | 🧪 Preview Azure service networking |
-| **Specification** | Ingress v1 | Gateway API v1 | Gateway API + Azure Extensions | Gateway API + ambient mesh concepts |
-| **Provider** | Community | CNCF/Envoy | Microsoft Azure | Microsoft Azure Application Network |
-| **Role-Based** | No | Yes | Yes | Yes |
-| **Multi-tenancy** | Limited | Native | Native | Namespace/service waypoint model |
-| **Azure Integration** | External | External | Deep Integration | Managed ambient data plane |
-| **WAF Support** | Manual | Manual | Built-in Ready | Not the focus of this demo |
-| **Use Case** | Legacy systems | Cross-cloud portability | Azure-first ingress | East-west service mesh visualization |
+| Feature | NGINX Ingress | Gateway API (Envoy) | AGC | Managed Ambient Mesh | Front Door + App Gateway |
+|---------|---------------|---------------------|-----|----------------------|---------------------------|
+| **Status** | ⚠️ Legacy / Traditional | ✅ Modern Standard | ✅ Azure-Native | 🧪 Preview Azure service networking | ✅ Azure-Native, Global Edge |
+| **Specification** | Ingress v1 | Gateway API v1 | Gateway API + Azure Extensions | Gateway API + ambient mesh concepts | Ingress v1 (AGIC) |
+| **Provider** | Community | CNCF/Envoy | Microsoft Azure | Microsoft Azure Application Network | Microsoft Azure |
+| **Role-Based** | No | Yes | Yes | Yes | No |
+| **Multi-tenancy** | Limited | Native | Native | Namespace/service waypoint model | Limited |
+| **Azure Integration** | External | External | Deep Integration | Managed ambient data plane | Deep Integration (2 layers) |
+| **WAF Support** | Manual | Manual | Built-in Ready | Not the focus of this demo | Built-in (Front Door Premium) |
+| **Use Case** | Legacy systems | Cross-cloud portability | Azure-first ingress | East-west service mesh visualization | Global edge + regional VNet routing |
 
 ## Prerequisites
 
@@ -67,11 +68,11 @@ Before running any demo, ensure you have:
 
 ## Verified Azure Configuration
 
-Demos 01-03 are configured and tested for **Sweden Central**. Demo 04 uses **North Europe** by explicit preview-feature decision:
+Demos 01-03 and 05 are configured and tested for **Sweden Central**. Demo 04 uses **North Europe** by explicit preview-feature decision:
 
 | Setting | Value | Status |
 |---------|-------|--------|
-| **Azure Region** | `swedencentral` for Demos 01-03; `northeurope` for Demo 04 | ✅ Verified baseline / 🧪 preview exception |
+| **Azure Region** | `swedencentral` for Demos 01-03 and 05; `northeurope` for Demo 04 | ✅ Verified baseline / 🧪 preview exception |
 | **Kubernetes Version** | `1.35.4` | ✅ Latest non-preview supported patch |
 | **VM SKU** | `Standard_B4as_v2` | ✅ Available (B-series v2, ARM-based) |
 | **VM Specs** | 4 vCPUs, 16 GiB RAM | Modern Ampere Altra processor |
@@ -85,6 +86,7 @@ Demos 01-03 are configured and tested for **Sweden Central**. Demo 04 uses **Nor
 - Demo 02: `rg-02-envoy-gateway-demo`
 - Demo 03: `rg-03-agc-containers-demo`
 - Demo 04: `rg-04-istio-ambient-demo`
+- Demo 05: `rg-05-afd-appgw-demo`
 
 ## Quick Start
 
@@ -124,6 +126,13 @@ cd 04-managed-istio-ambient
 ```
 [📖 Full Documentation](./04-managed-istio-ambient/README.md) | [📊 Mermaid Diagram](./04-managed-istio-ambient/architecture.mermaid.md) | [✏️ Draw.io Diagram](./04-managed-istio-ambient/architecture.drawio)
 
+### 5. Azure Front Door + Application Gateway Demo
+```bash
+cd 05-afd-appgw
+./scripts/deploy.sh
+```
+[📖 Full Documentation](./05-afd-appgw/README.md) | [📊 Mermaid Diagram](./05-afd-appgw/architecture.mermaid.md) | [✏️ Draw.io Diagram](./05-afd-appgw/architecture.drawio)
+
 ## Repository Structure
 
 ```
@@ -153,7 +162,12 @@ aksingress2026/
 │   ├── infrastructure/
 │   ├── kubernetes/
 │   └── scripts/
-└── 04-managed-istio-ambient/          # Managed ambient mesh demo
+├── 04-managed-istio-ambient/          # Managed ambient mesh demo
+│   ├── README.md
+│   ├── infrastructure/
+│   ├── kubernetes/
+│   └── scripts/
+└── 05-afd-appgw/                      # Front Door + Application Gateway demo
     ├── README.md
     ├── infrastructure/
     ├── kubernetes/
@@ -162,7 +176,7 @@ aksingress2026/
 
 ## Shared Azure Container Registry and Observability
 
-All four demos use one shared resource group, `rg-aksdemo-shared`, for resources that are intentionally reused across demo environments. This shared resource group is owned by the demo set rather than by any individual demo folder: each `deploy-infra.sh` run creates or reuses the shared resources, and each `cleanup.sh` deletes only its own demo resource group.
+All five demos use one shared resource group, `rg-aksdemo-shared`, for resources that are intentionally reused across demo environments. This shared resource group is owned by the demo set rather than by any individual demo folder: each `deploy-infra.sh` run creates or reuses the shared resources, and each `cleanup.sh` deletes only its own demo resource group.
 
 Shared resources:
 
@@ -226,7 +240,7 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 
 ## Cost Considerations
 
-⚠️ **Important**: Each demo creates billable Azure resources. Demos 01-03 use Sweden Central; Demo 04 uses North Europe preview resources. Actual Azure pricing is region-dependent and may vary with usage:
+⚠️ **Important**: Each demo creates billable Azure resources. Demos 01-03 and 05 use Sweden Central; Demo 04 uses North Europe preview resources. Actual Azure pricing is region-dependent and may vary with usage:
 
 - **AKS cluster (Free tier)**: $0/month
 - **2 x Standard_B4as_v2 nodes**: ~$70/month
@@ -235,6 +249,8 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 - **Load Balancer** (for NGINX and Envoy demos): ~$20/month
 - **Application Gateway for Containers** (for AGC demo): ~$40/month
 - **Azure Kubernetes Application Network preview** (for Demo 04): preview pricing and regional availability may change
+- **Azure Front Door Premium** (for Demo 05): ~$330/month base, dominant cost driver
+- **Application Gateway v2 (Standard_v2, autoscale)** (for Demo 05): ~$175-250/month
 - **Virtual Network resources**: Minimal cost
 - **Log Analytics**: ~$5/month
 - **Azure Monitor workspace / managed Prometheus ingestion**: usage-based
@@ -243,6 +259,7 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 - Demos 01-02 (NGINX/Envoy): ~$115/month
 - Demo 03 (App Gateway): ~$155/month
 - Demo 04 (Application Network preview + in-cluster Kiali/Prometheus): verify current preview pricing before workshops
+- Demo 05 (Front Door Premium + App Gateway v2): ~$600-750/month — the most expensive demo in this repo, driven by Front Door Premium's fixed base fee
 
 💡 **To minimize costs**:
 - Use `./scripts/cleanup.sh` to delete demo resources after testing
@@ -275,6 +292,12 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 - ✅ You want to explain ambient mesh, ztunnel, and waypoint trade-offs
 - ✅ You want Kiali traffic graphs for a live workshop
 
+### Choose Azure Front Door + Application Gateway if:
+- ✅ You need a global edge entry point with managed WAF (OWASP + bot protection) before traffic reaches Azure
+- ✅ You want CDN/edge caching, custom domains, and TLS termination at a global point of presence
+- ✅ You still want a familiar, classic Application Gateway/AGIC-based regional load balancer in front of AKS
+- ✅ Cost is secondary to defense-in-depth, multi-region failover, or public-facing enterprise workloads
+
 ## Learning Path
 
 **Recommended order** for learning:
@@ -282,7 +305,8 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 1. Start with **NGINX Ingress** to understand the traditional approach
 2. Move to **Gateway API** to see the modern Kubernetes standard
 3. Continue with **AGC** to see Azure's optimized ingress solution
-4. Finish with **Managed Ambient Mesh** to compare ingress with east-west service networking
+4. Continue with **Managed Ambient Mesh** to compare ingress with east-west service networking
+5. Finish with **Front Door + Application Gateway** to see a layered, global edge + regional architecture with defense-in-depth WAF
 
 ## Contributing
 
@@ -294,7 +318,7 @@ Feel free to:
 - Submit pull requests with enhancements
 - Use this as a template for your own demos
 
-**Important**: If you make changes to Demos 01-03, verify resources are available in Sweden Central. For Demo 04, verify North Europe Application Network preview availability:
+**Important**: If you make changes to Demos 01-03 or 05, verify resources are available in Sweden Central. For Demo 04, verify North Europe Application Network preview availability:
 ```bash
 # Check VM SKU availability
 az vm list-skus --location swedencentral --size <SKU> --all
