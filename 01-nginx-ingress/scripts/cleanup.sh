@@ -14,6 +14,9 @@ echo
 SHARED_ACR_RESOURCE_GROUP="rg-aksdemo-shared"
 RESOURCE_GROUP="rg-01-nginx-ingress-demo"
 APP_NAMESPACE="demo"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+source "$REPO_ROOT/shared/scripts/fleet-manager.sh"
 
 purge_log_analytics_workspaces() {
   local workspace_names
@@ -76,6 +79,10 @@ echo -e "${GREEN}✓ Log Analytics workspace purge complete${NC}"
 echo
 
 echo -e "${YELLOW}[3/3] Deleting Azure resources...${NC}"
+if ! remove_demo_resource_group_from_fleet "$RESOURCE_GROUP"; then
+  echo -e "${RED}Failed to remove the AKS cluster from Fleet Manager.${NC}" >&2
+  exit 1
+fi
 az group delete \
   --name $RESOURCE_GROUP \
   --yes \

@@ -39,6 +39,7 @@ See [architecture.drawio](./architecture.drawio) and [architecture.mermaid.md](.
 ## Prerequisites
 
 - Azure CLI with the Application Network preview extension available (`az appnet`). The deployment script attempts to install/update it.
+- Azure CLI `fleet` extension when using the optional Demo 06 Fleet membership.
 - Subscription approval for Azure Kubernetes Application Network preview.
 - `kubectl`.
 - `helm` for Prometheus and Kiali installation.
@@ -66,6 +67,8 @@ The orchestrator runs:
 1. `./scripts/deploy-infra.sh` registers providers/preview features, verifies regional support, creates `rg-04-istio-ambient-demo`, deploys AKS + Application Network using Bicep, and grants AKS pull access to the shared ACR.
 2. `./scripts/build-image.sh` builds or reuses the shared sample app image with ACR Tasks.
 3. `./scripts/configure-kubernetes.sh` gets AKS credentials, checks Gateway API and Application Network membership, deploys the mesh application, applies Gateway/HTTPRoute/waypoint/telemetry resources, and installs Prometheus + Kiali.
+
+If the hubless `aks-ingress-demo-fleet` from Demo 06 already exists, `deploy-infra.sh` also joins this AKS cluster as a Fleet member. Membership is optional and does not change Application Network, the mesh, or ingress traffic.
 
 You can also run the phases independently.
 
@@ -140,7 +143,7 @@ kubectl logs -n mesh-demo -l app=frontend --since=5m
 ./scripts/cleanup.sh
 ```
 
-The script permanently deletes demo-owned Log Analytics workspaces, then deletes the Demo 04 resource group and Kubernetes resources. Shared ACR/Grafana/Prometheus workspace resources in `rg-aksdemo-shared` remain for the other demos.
+If Demo 06's Fleet exists, the script first removes this cluster's membership. It then permanently deletes demo-owned Log Analytics workspaces and the Demo 04 resource group and Kubernetes resources. The Fleet, other AKS clusters, and shared ACR/Grafana/Prometheus workspace resources in `rg-aksdemo-shared` remain intact.
 
 ## Notes and Risks
 

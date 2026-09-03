@@ -19,6 +19,7 @@ DEPLOYMENT_NAME="istio-ambient-demo-deployment"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 source "$REPO_ROOT/shared/scripts/acr-image.sh"
+source "$REPO_ROOT/shared/scripts/fleet-manager.sh"
 source "$REPO_ROOT/shared/scripts/role-assignment.sh"
 
 command -v az >/dev/null 2>&1 || { echo -e "${RED}Azure CLI is required but not installed.${NC}" >&2; exit 1; }
@@ -197,9 +198,11 @@ AZURE_MONITOR_WORKSPACE_NAME=$(az deployment group show --resource-group "$RESOU
 GRAFANA_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.grafanaName.value --output tsv)
 GRAFANA_ENDPOINT=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.grafanaEndpoint.value --output tsv)
 KUBELET_OBJECT_ID=$(az aks show --resource-group "$RESOURCE_GROUP" --name "$AKS_NAME" --query identityProfile.kubeletidentity.objectId --output tsv)
+AKS_ID=$(az aks show --resource-group "$RESOURCE_GROUP" --name "$AKS_NAME" --query id --output tsv)
 ACR_ID=$(az acr show --resource-group "$SHARED_ACR_RESOURCE_GROUP" --name "$ACR_NAME" --query id --output tsv)
 
 ensure_role_assignment "$KUBELET_OBJECT_ID" "ServicePrincipal" "$ACR_PULL_ROLE_ID" "$ACR_ID" "AcrPull on shared ACR"
+ensure_demo_cluster_fleet_membership "$AKS_NAME" "$AKS_ID"
 
 echo -e "${GREEN}✓ Infrastructure deployed${NC}"
 echo -e "  AKS Cluster: ${AKS_NAME}"

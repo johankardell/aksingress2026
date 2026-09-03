@@ -19,6 +19,9 @@ APP_NAMESPACE="demo"
 ALB_CONTROLLER_NAMESPACE="azure-alb-system"
 ALB_RESOURCE_NAMESPACE="alb-infra"
 ALB_RESOURCE_NAME="alb"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+source "$REPO_ROOT/shared/scripts/fleet-manager.sh"
 
 command -v az >/dev/null 2>&1 || { echo -e "${RED}Azure CLI is required but not installed.${NC}" >&2; exit 1; }
 
@@ -107,6 +110,10 @@ echo -e "${GREEN}✓ Log Analytics workspace purge complete${NC}"
 echo
 
 echo -e "${YELLOW}[3/3] Deleting Azure resources...${NC}"
+if ! remove_demo_resource_group_from_fleet "$RESOURCE_GROUP"; then
+  echo -e "${RED}Failed to remove the AKS cluster from Fleet Manager.${NC}" >&2
+  exit 1
+fi
 az group delete \
   --name $RESOURCE_GROUP \
   --yes \
