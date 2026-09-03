@@ -39,6 +39,7 @@ Unlike Demo 03 (which uses the Application Gateway for Containers ALB Controller
 See the [repository root README](../README.md#prerequisites) for common prerequisites (Azure CLI, kubectl, Bicep, Helm). This demo additionally requires:
 
 - The `Microsoft.Cdn` resource provider registered in your subscription (handled automatically by `deploy-infra.sh`) for Azure Front Door.
+- The Azure CLI `fleet` extension when using the optional Demo 06 Fleet membership.
 
 ## Deployment
 
@@ -57,6 +58,8 @@ Or run each phase independently:
 ./scripts/configure-kubernetes.sh  # Deploys the app and Ingress; waits for AGIC to reconcile the Application Gateway
 ```
 
+If the hubless `aks-ingress-demo-fleet` from Demo 06 already exists, `deploy-infra.sh` also joins this AKS cluster as a Fleet member. Membership is optional and does not change Front Door, Application Gateway, AGIC, or ingress traffic.
+
 After `configure-kubernetes.sh` completes, it prints:
 
 - The **Front Door endpoint URL** (`https://<endpoint>.z01.azurefd.net` or similar) — this is the recommended, WAF-protected entry point.
@@ -68,7 +71,7 @@ After `configure-kubernetes.sh` completes, it prints:
 ./scripts/cleanup.sh
 ```
 
-This deletes the Kubernetes resources, then deletes the `rg-05-afd-appgw-demo` resource group (Front Door profile, WAF policy, Application Gateway, AKS cluster, VNet, and Log Analytics workspace). The shared ACR, Azure Monitor workspace, and Grafana instance in `rg-aksdemo-shared` are left untouched.
+If Demo 06's Fleet exists, cleanup first removes this cluster's membership. It then deletes the Kubernetes resources and the `rg-05-afd-appgw-demo` resource group (Front Door profile, WAF policy, Application Gateway, AKS cluster, VNet, and Log Analytics workspace). The Fleet, other AKS clusters, shared ACR, Azure Monitor workspace, and Grafana instance are left untouched.
 
 ## Resource Group
 

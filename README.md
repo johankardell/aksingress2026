@@ -1,33 +1,34 @@
 # AKS Ingress Comparison Demo 2026
 
-A comprehensive comparison of five different ingress and service networking approaches for Azure Kubernetes Service (AKS), demonstrating the evolution from traditional Ingress-based solutions to modern, Azure-native architectures.
+A collection of six AKS demonstrations: five ingress and service-networking approaches plus an intentionally minimal AKS Fleet Manager integration demo.
 
-> **✅ Verified Configuration**: Demos 01-03 and 05 are tested and configured for **Sweden Central**. Demo 04 intentionally uses **North Europe** because Azure Kubernetes Application Network is a preview feature with regional availability. All demos use Kubernetes 1.35.4, Standard_B4as_v2 VMs, and the Free AKS tier where supported.
+> **✅ Verified Configuration**: Demos 01-03, 05, and 06 are configured for **Sweden Central**. Demo 04 intentionally uses **North Europe** because Azure Kubernetes Application Network is a preview feature with regional availability. The five workload demos use Kubernetes 1.35.4, Standard_B4as_v2 VMs, and the Free AKS tier where supported; Demo 06 creates no AKS cluster.
 
 ## Overview
 
-This repository contains five independent demonstrations showcasing different ingress, gateway, and service networking solutions for AKS:
+This repository contains six demonstrations. Demos 01-05 showcase ingress, gateway, and service networking solutions; Demo 06 adds optional fleet membership without changing those solutions:
 
 1. **[NGINX Ingress Controller](./01-nginx-ingress/)** - The traditional Ingress-based approach ([Mermaid](./01-nginx-ingress/architecture.mermaid.md), [Draw.io](./01-nginx-ingress/architecture.drawio))
 2. **[Gateway API with Envoy](./02-envoy-gateway-api/)** - Modern, vendor-neutral Kubernetes standard ([Mermaid](./02-envoy-gateway-api/architecture.mermaid.md), [Draw.io](./02-envoy-gateway-api/architecture.drawio))
 3. **[Application Gateway for Containers](./03-agc-for-containers/)** - Azure-native ingress solution ([Mermaid](./03-agc-for-containers/architecture.mermaid.md), [Draw.io](./03-agc-for-containers/architecture.drawio))
 4. **[Managed Istio Ambient Mesh](./04-managed-istio-ambient/)** - Managed ambient mesh with Azure Kubernetes Application Network preview, Gateway API ingress, waypoint telemetry, Prometheus, and Kiali ([Mermaid](./04-managed-istio-ambient/architecture.mermaid.md), [Draw.io](./04-managed-istio-ambient/architecture.drawio))
 5. **[Azure Front Door (WAF) + Application Gateway](./05-afd-appgw/)** - Global edge WAF via Azure Front Door Premium, fronting a classic Application Gateway v2 that load-balances into AKS through the AGIC add-on ([Mermaid](./05-afd-appgw/architecture.mermaid.md), [Draw.io](./05-afd-appgw/architecture.drawio))
+6. **[AKS Fleet Manager](./06-aks-fleet-manager/)** - A hubless Fleet that discovers and reconciles membership for already deployed demo AKS clusters without altering ingress behavior
 
-Each demo deploys a .NET 10 sample application to its own AKS cluster. Demo 04 runs the same image as a three-service mesh chain (`frontend` → `orders` → `inventory`) to make east-west traffic visible.
+Each of Demos 01-05 deploys a .NET 10 sample application to its own AKS cluster. Demo 04 runs the same image as a three-service mesh chain (`frontend` → `orders` → `inventory`) to make east-west traffic visible. Demo 06 deploys only the Fleet resource and memberships.
 
 ## Demo Comparison
 
-| Feature | NGINX Ingress | Gateway API (Envoy) | AGC | Managed Ambient Mesh | Front Door + App Gateway |
-|---------|---------------|---------------------|-----|----------------------|---------------------------|
-| **Status** | ⚠️ Legacy / Traditional | ✅ Modern Standard | ✅ Azure-Native | 🧪 Preview Azure service networking | ✅ Azure-Native, Global Edge |
-| **Specification** | Ingress v1 | Gateway API v1 | Gateway API + Azure Extensions | Gateway API + ambient mesh concepts | Ingress v1 (AGIC) |
-| **Provider** | Community | CNCF/Envoy | Microsoft Azure | Microsoft Azure Application Network | Microsoft Azure |
-| **Role-Based** | No | Yes | Yes | Yes | No |
-| **Multi-tenancy** | Limited | Native | Native | Namespace/service waypoint model | Limited |
-| **Azure Integration** | External | External | Deep Integration | Managed ambient data plane | Deep Integration (2 layers) |
-| **WAF Support** | Manual | Manual | Built-in Ready | Not the focus of this demo | Built-in (Front Door Premium) |
-| **Use Case** | Legacy systems | Cross-cloud portability | Azure-first ingress | East-west service mesh visualization | Global edge + regional VNet routing |
+| Feature | NGINX Ingress | Gateway API (Envoy) | AGC | Managed Ambient Mesh | Front Door + App Gateway | AKS Fleet Manager |
+|---------|---------------|---------------------|-----|----------------------|---------------------------|-------------------|
+| **Status** | ⚠️ Legacy / Traditional | ✅ Modern Standard | ✅ Azure-Native | 🧪 Preview Azure service networking | ✅ Azure-Native, Global Edge | ✅ Optional management layer |
+| **Specification** | Ingress v1 | Gateway API v1 | Gateway API + Azure Extensions | Gateway API + ambient mesh concepts | Ingress v1 (AGIC) | AKS Fleet membership |
+| **Provider** | Community | CNCF/Envoy | Microsoft Azure | Microsoft Azure Application Network | Microsoft Azure | Microsoft Azure |
+| **Role-Based** | No | Yes | Yes | Yes | No | Not an ingress concern |
+| **Multi-tenancy** | Limited | Native | Native | Namespace/service waypoint model | Limited | Not demonstrated |
+| **Azure Integration** | External | External | Deep Integration | Managed ambient data plane | Deep Integration (2 layers) | Cross-cluster membership |
+| **WAF Support** | Manual | Manual | Built-in Ready | Not the focus of this demo | Built-in (Front Door Premium) | Does not provide WAF |
+| **Use Case** | Legacy systems | Cross-cloud portability | Azure-first ingress | East-west service mesh visualization | Global edge + regional VNet routing | Minimal fleet organization demo |
 
 ## Prerequisites
 
@@ -49,6 +50,12 @@ Before running any demo, ensure you have:
   az account set --subscription <your-subscription-id>
   ```
 
+- **Azure CLI fleet extension** for Demo 06 and optional Fleet membership integration:
+  Azure CLI 2.82.0 or later and fleet extension 1.8.3 or later are required.
+  ```bash
+  az extension add --name fleet --upgrade
+  ```
+
 - **kubectl** version 1.27 or later
   ```bash
   kubectl version --client
@@ -68,11 +75,11 @@ Before running any demo, ensure you have:
 
 ## Verified Azure Configuration
 
-Demos 01-03 and 05 are configured and tested for **Sweden Central**. Demo 04 uses **North Europe** by explicit preview-feature decision:
+Demos 01-03, 05, and 06 are configured for **Sweden Central**. Demo 04 uses **North Europe** by explicit preview-feature decision:
 
 | Setting | Value | Status |
 |---------|-------|--------|
-| **Azure Region** | `swedencentral` for Demos 01-03 and 05; `northeurope` for Demo 04 | ✅ Verified baseline / 🧪 preview exception |
+| **Azure Region** | `swedencentral` for Demos 01-03, 05, and 06; `northeurope` for Demo 04 | ✅ Baseline / 🧪 preview exception |
 | **Kubernetes Version** | `1.35.4` | ✅ Latest non-preview supported patch |
 | **VM SKU** | `Standard_B4as_v2` | ✅ Available (B-series v2, ARM-based) |
 | **VM Specs** | 4 vCPUs, 16 GiB RAM | Modern Ampere Altra processor |
@@ -87,10 +94,12 @@ Demos 01-03 and 05 are configured and tested for **Sweden Central**. Demo 04 use
 - Demo 03: `rg-03-agc-containers-demo`
 - Demo 04: `rg-04-istio-ambient-demo`
 - Demo 05: `rg-05-afd-appgw-demo`
+- Demo 06: `rg-06-aks-fleet-demo`
 
 ## Quick Start
 
-Each demo is self-contained in its own folder with complete infrastructure and deployment automation.
+Each demo is self-contained in its own folder with infrastructure and deployment automation.
+The phase-oriented application workflow below applies to Demos 01-05.
 Run `./scripts/deploy.sh` for the full sequential path, or run `./scripts/deploy-infra.sh`,
 `./scripts/build-image.sh`, and `./scripts/configure-kubernetes.sh` independently when you want
 separate infrastructure, image build, and Kubernetes configuration phases. `deploy-infra.sh`
@@ -133,6 +142,15 @@ cd 05-afd-appgw
 ```
 [📖 Full Documentation](./05-afd-appgw/README.md) | [📊 Mermaid Diagram](./05-afd-appgw/architecture.mermaid.md) | [✏️ Draw.io Diagram](./05-afd-appgw/architecture.drawio)
 
+### 6. AKS Fleet Manager Demo
+```bash
+cd 06-aks-fleet-manager
+./scripts/deploy.sh
+```
+[📖 Full Documentation](./06-aks-fleet-manager/README.md)
+
+This creates the hubless Fleet `aks-ingress-demo-fleet` with a system-assigned managed identity, then discovers and reconciles any Demo 01-05 AKS clusters that are already deployed. It creates no hub cluster or application workload and does not change ingress traffic.
+
 ## Repository Structure
 
 ```
@@ -167,16 +185,20 @@ aksingress2026/
 │   ├── infrastructure/
 │   ├── kubernetes/
 │   └── scripts/
-└── 05-afd-appgw/                      # Front Door + Application Gateway demo
+├── 05-afd-appgw/                      # Front Door + Application Gateway demo
+│   ├── README.md
+│   ├── infrastructure/
+│   ├── kubernetes/
+│   └── scripts/
+└── 06-aks-fleet-manager/              # Hubless AKS Fleet Manager demo
     ├── README.md
     ├── infrastructure/
-    ├── kubernetes/
     └── scripts/
 ```
 
 ## Shared Azure Container Registry and Observability
 
-All five demos use one shared resource group, `rg-aksdemo-shared`, for resources that are intentionally reused across demo environments. This shared resource group is owned by the demo set rather than by any individual demo folder: each `deploy-infra.sh` run creates or reuses the shared resources, and each `cleanup.sh` deletes only its own demo resource group.
+Demos 01-05 use one shared resource group, `rg-aksdemo-shared`, for resources that are intentionally reused across application demo environments. Demo 06 does not use these application resources. This shared resource group is owned by the demo set rather than by any individual demo folder: each application demo's `deploy-infra.sh` run creates or reuses the shared resources, and each `cleanup.sh` deletes only its own demo resource group.
 
 Shared resources:
 
@@ -185,13 +207,13 @@ Shared resources:
 - One Azure Managed Grafana instance connected to that Azure Monitor workspace. The signed-in user that runs the deployment receives Grafana Admin on the shared instance, and Grafana's managed identity receives monitoring read permissions on the shared workspace.
 
 - `deploy-infra.sh` creates/reuses `rg-aksdemo-shared`, creates/reuses the shared ACR, Azure Monitor workspace, and Grafana instance, deploys the demo AKS resources, enables Azure Monitor managed Prometheus for that AKS cluster, and grants that AKS kubelet identity `AcrPull` on the shared registry.
-- `build-image.sh` can be run once from any demo folder; it builds the shared sample app image with ACR Tasks only when the computed source-content tag is absent.
-- `configure-kubernetes.sh` deploys the same image reference for every demo while keeping demo-specific UI/content in Kubernetes environment variables.
+- `build-image.sh` can be run once from any Demo 01-05 folder; it builds the shared sample app image with ACR Tasks only when the computed source-content tag is absent.
+- `configure-kubernetes.sh` deploys the same image reference for Demos 01-05 while keeping demo-specific UI/content in Kubernetes environment variables.
 - Demo cleanup scripts delete only the demo resource group and Kubernetes resources. Delete `rg-aksdemo-shared` manually only after all demos that depend on the shared image and shared Grafana have been removed.
 
 ### Access Grafana
 
-After any demo infrastructure deployment completes, the script prints the shared Grafana name and endpoint. You can also look it up later:
+After any Demo 01-05 infrastructure deployment completes, the script prints the shared Grafana name and endpoint. You can also look it up later:
 
 ```bash
 az resource list \
@@ -214,9 +236,15 @@ Use the shared Grafana data source backed by the Azure Monitor workspace to show
 
 Start with the built-in Azure Managed Prometheus Kubernetes dashboards, then filter by the `cluster` label to switch between Demo 01, Demo 02, Demo 03, and Demo 04.
 
+## Optional AKS Fleet Membership
+
+Demo 06 creates the hubless Fleet `aks-ingress-demo-fleet` in `rg-06-aks-fleet-demo` with a system-assigned managed identity. Its deployment discovers and reconciles any existing Demo 01-05 AKS clusters. If the Fleet already exists when a workload demo's `deploy-infra.sh` runs, that cluster is automatically joined.
+
+Fleet membership is an additional management relationship only; it does not replace or reconfigure NGINX, Gateway API, AGC, Application Network, Front Door, Application Gateway, or AGIC. Each workload demo cleanup removes its membership before deleting its AKS cluster. Demo 06 cleanup deletes only `rg-06-aks-fleet-demo` and leaves every AKS cluster and workload resource group intact.
+
 ## Sample Application
 
-All demos use the same [.NET 10 minimal API application](./shared/sample-app/), which provides:
+Demos 01-05 use the same [.NET 10 minimal API application](./shared/sample-app/), which provides:
 
 - **Main Page** (`/`) - Beautiful UI showing demo information, a backend banner, pod identity, and request inspector details
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) - Compatibility, liveness, and readiness endpoints
@@ -240,7 +268,7 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 
 ## Cost Considerations
 
-⚠️ **Important**: Each demo creates billable Azure resources. Demos 01-03 and 05 use Sweden Central; Demo 04 uses North Europe preview resources. Actual Azure pricing is region-dependent and may vary with usage:
+⚠️ **Important**: Each demo creates Azure resources. Demos 01-03, 05, and 06 use Sweden Central; Demo 04 uses North Europe preview resources. Actual Azure pricing is region-dependent and may vary with usage:
 
 - **AKS cluster (Free tier)**: $0/month
 - **2 x Standard_B4as_v2 nodes**: ~$70/month
@@ -251,6 +279,7 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 - **Azure Kubernetes Application Network preview** (for Demo 04): preview pricing and regional availability may change
 - **Azure Front Door Premium** (for Demo 05): ~$330/month base, dominant cost driver
 - **Application Gateway v2 (Standard_v2, autoscale)** (for Demo 05): ~$175-250/month
+- **Hubless AKS Fleet Manager** (for Demo 06): no hub-cluster compute; verify current Fleet pricing before deployment
 - **Virtual Network resources**: Minimal cost
 - **Log Analytics**: ~$5/month
 - **Azure Monitor workspace / managed Prometheus ingestion**: usage-based
@@ -260,12 +289,13 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 - Demo 03 (App Gateway): ~$155/month
 - Demo 04 (Application Network preview + in-cluster Kiali/Prometheus): verify current preview pricing before workshops
 - Demo 05 (Front Door Premium + App Gateway v2): ~$600-750/month — the most expensive demo in this repo, driven by Front Door Premium's fixed base fee
+- Demo 06 (hubless AKS Fleet Manager): no additional hub-cluster compute; no estimate is asserted here
 
 💡 **To minimize costs**:
 - Use `./scripts/cleanup.sh` to delete demo resources after testing
-- Delete `rg-aksdemo-shared` only after all demos are cleaned up and nobody still needs the shared Grafana dashboards
+- Delete `rg-aksdemo-shared` only after all application demos are cleaned up and nobody still needs the shared Grafana dashboards
 - Deploy only one demo at a time
-- All demos use cost-optimized configurations (Free AKS tier, B-series VMs)
+- Demos 01-05 use cost-optimized AKS configurations (Free AKS tier, B-series VMs); Demo 06 creates no cluster
 
 ## Choosing the Right Ingress Solution
 
@@ -298,6 +328,11 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 - ✅ You still want a familiar, classic Application Gateway/AGIC-based regional load balancer in front of AKS
 - ✅ Cost is secondary to defense-in-depth, multi-region failover, or public-facing enterprise workloads
 
+### Add the AKS Fleet Manager demo if:
+- ✅ You want a minimal example of organizing the already deployed demo clusters as Fleet members
+- ✅ You understand that this hubless Fleet adds no hub compute and does not alter ingress behavior
+- ⚠️ You are evaluating the management relationship itself rather than expecting new traffic-management capabilities
+
 ## Learning Path
 
 **Recommended order** for learning:
@@ -306,7 +341,8 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 2. Move to **Gateway API** to see the modern Kubernetes standard
 3. Continue with **AGC** to see Azure's optimized ingress solution
 4. Continue with **Managed Ambient Mesh** to compare ingress with east-west service networking
-5. Finish with **Front Door + Application Gateway** to see a layered, global edge + regional architecture with defense-in-depth WAF
+5. Continue with **Front Door + Application Gateway** to see a layered, global edge + regional architecture with defense-in-depth WAF
+6. Finish with **AKS Fleet Manager** to see optional cross-cluster membership without changing any ingress implementation
 
 ## Contributing
 
@@ -318,7 +354,7 @@ Feel free to:
 - Submit pull requests with enhancements
 - Use this as a template for your own demos
 
-**Important**: If you make changes to Demos 01-03 or 05, verify resources are available in Sweden Central. For Demo 04, verify North Europe Application Network preview availability:
+**Important**: If you make changes to Demos 01-03, 05, or 06, verify resources are available in Sweden Central. For Demo 04, verify North Europe Application Network preview availability:
 ```bash
 # Check VM SKU availability
 az vm list-skus --location swedencentral --size <SKU> --all
@@ -337,6 +373,7 @@ For security-sensitive issues, see [SECURITY.md](./SECURITY.md) for reporting gu
 
 ### Official Documentation
 - [AKS Documentation](https://learn.microsoft.com/azure/aks/)
+- [Azure Kubernetes Fleet Manager documentation](https://learn.microsoft.com/azure/kubernetes-fleet/)
 - [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/)
 - [Application Gateway for Containers](https://learn.microsoft.com/azure/application-gateway/for-containers/)
 - [Istio Ambient Mesh](https://istio.io/latest/docs/ambient/)

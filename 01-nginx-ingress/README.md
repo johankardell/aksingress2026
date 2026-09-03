@@ -87,6 +87,7 @@ The Kubernetes Ingress API is stable, but it is intentionally limited. Gateway A
 ## Prerequisites
 
 - Azure CLI (`az`) version 2.50.0+
+- Azure CLI `fleet` extension when using the optional Demo 06 Fleet membership
 - kubectl version 1.27+
 - Helm version 3.12+
 - No local Docker installation required; the shared image is built remotely with Azure Container Registry Tasks
@@ -105,6 +106,8 @@ The script runs the three focused deployment phases in sequence:
 1. `./scripts/deploy-infra.sh` creates/registers Azure resources, deploys AKS via Bicep, enables managed Prometheus, creates/reuses the shared ACR, Azure Monitor workspace, and Grafana in `rg-aksdemo-shared`, and grants AKS pull access. This phase does not use `kubectl` and can be run in parallel with other demos.
 2. `./scripts/build-image.sh` builds the shared sample app image with Azure Container Registry Tasks only if the source-content tag is missing.
 3. `./scripts/configure-kubernetes.sh` gets AKS credentials, installs NGINX Ingress Controller via Helm, deploys the application, and displays the public URL. This is the only phase that changes or relies on the active `kubectl` context.
+
+If the hubless `aks-ingress-demo-fleet` from Demo 06 already exists, `deploy-infra.sh` also joins this AKS cluster as a Fleet member. Membership is optional and does not change NGINX or ingress traffic.
 
 You can also run the phases independently:
 
@@ -329,7 +332,7 @@ See the other demos in this repository:
 
 ## Clean Up
 
-Demo cleanup scripts permanently delete demo-owned Log Analytics workspaces before deleting the demo resource group. They leave the shared ACR in `rg-aksdemo-shared` so another demo can continue pulling the shared image. After all demos are removed, delete the shared registry resource group manually if you no longer need it:
+Demo cleanup scripts permanently delete demo-owned Log Analytics workspaces before deleting the demo resource group. If Demo 06's Fleet exists, cleanup first removes this cluster's membership. It leaves the Fleet, other AKS clusters, and the shared ACR in `rg-aksdemo-shared` intact. After all application demos are removed, delete the shared registry resource group manually if you no longer need it:
 
 ```bash
 az group delete --name rg-aksdemo-shared --yes --no-wait  # Only after all demos and shared Grafana use are finished
