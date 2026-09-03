@@ -16,6 +16,8 @@ flowchart TD
                 subgraph aks[AKS cluster]
                     subgraph albNs[azure-alb-system namespace]
                         controller[ALB Controller]
+                    end
+                    subgraph albInfraNs[alb-infra namespace]
                         albCrd[ApplicationLoadBalancer CRD\nalb-infra/alb]
                     end
 

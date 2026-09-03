@@ -143,7 +143,7 @@ resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPo
 }
 
 // Shared Azure Container Registry
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+resource acr 'Microsoft.ContainerRegistry/registries@2025-11-01' existing = {
   name: sharedAcrName
   scope: resourceGroup(sharedAcrResourceGroupName)
 }
@@ -164,14 +164,14 @@ module observability '../../shared/infrastructure/observability.bicep' = {
 }
 
 // User Assigned Managed Identity for Application Gateway for Containers
-resource agcIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource agcIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: '${baseName}-agc-identity'
   location: location
   tags: tags
 }
 
 // AKS Cluster prepared for Application Gateway for Containers
-resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
+resource aks 'Microsoft.ContainerService/managedClusters@2024-09-01' = {
   name: aksClusterName
   location: location
   tags: tags
@@ -290,12 +290,13 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-01-01' = {
     
     autoUpgradeProfile: {
       upgradeChannel: 'stable'
+      nodeOSUpgradeChannel: 'NodeImage'
     }
   }
 }
 
 // Data collection for Azure Monitor managed Prometheus
-resource prometheusDataCollectionEndpoint 'Microsoft.Insights/dataCollectionEndpoints@2022-06-01' = {
+resource prometheusDataCollectionEndpoint 'Microsoft.Insights/dataCollectionEndpoints@2024-03-11' = {
   name: prometheusCollectorName
   location: location
   kind: 'Linux'
@@ -355,7 +356,7 @@ resource prometheusDataCollectionRuleAssociation 'Microsoft.Insights/dataCollect
 }
 
 // AKS maintenance schedule for Kubernetes auto-upgrades
-resource autoUpgradeMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-01-01' = {
+resource autoUpgradeMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-09-01' = {
   parent: aks
   name: 'aksManagedAutoUpgradeSchedule'
   properties: {
@@ -374,7 +375,7 @@ resource autoUpgradeMaintenance 'Microsoft.ContainerService/managedClusters/main
 }
 
 // AKS maintenance schedule for managed node OS image upgrades
-resource nodeImageMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-01-01' = {
+resource nodeImageMaintenance 'Microsoft.ContainerService/managedClusters/maintenanceConfigurations@2024-09-01' = {
   parent: aks
   name: 'aksManagedNodeOSUpgradeSchedule'
   properties: {

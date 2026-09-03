@@ -37,7 +37,7 @@ delete_role_assignments() {
   fi
 
   local assignment_ids
-  assignment_ids=$(az role assignment list \
+  assignment_ids=$(MSYS_NO_PATHCONV=1 az role assignment list \
     --assignee "$assignee" \
     --role "$role" \
     --scope "$scope" \
@@ -51,34 +51,7 @@ delete_role_assignments() {
   echo "$assignment_ids" | while IFS= read -r assignment_id; do
     if [ -n "$assignment_id" ]; then
       echo "Removing existing '$role' role assignment at scope: $scope"
-      az role assignment delete --ids "$assignment_id" --output none
-    fi
-  done
-}
-
-delete_role_assignments_by_role() {
-  local role="$1"
-  local scope="$2"
-
-  if [ -z "$scope" ]; then
-    return
-  fi
-
-  local assignment_ids
-  assignment_ids=$(az role assignment list \
-    --role "$role" \
-    --scope "$scope" \
-    --query "[].id" \
-    --output tsv 2>/dev/null || true)
-
-  if [ -z "$assignment_ids" ]; then
-    return
-  fi
-
-  echo "$assignment_ids" | while IFS= read -r assignment_id; do
-    if [ -n "$assignment_id" ]; then
-      echo "Removing existing '$role' role assignment at scope: $scope"
-      az role assignment delete --ids "$assignment_id" --output none
+      MSYS_NO_PATHCONV=1 az role assignment delete --ids "$assignment_id" --output none
     fi
   done
 }
@@ -102,7 +75,7 @@ cleanup_conflicting_role_assignments() {
     fi
   fi
 
-  delete_role_assignments_by_role "AcrPull" "$acr_id"
+  delete_role_assignments "$kubelet_object_id" "AcrPull" "$acr_id"
   delete_role_assignments "$USER_OBJECT_ID" "Azure Kubernetes Service Cluster User Role" "$aks_id"
   delete_role_assignments "$USER_OBJECT_ID" "Azure Kubernetes Service RBAC Cluster Admin" "$aks_id"
 }
@@ -198,6 +171,7 @@ AKS_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$
 ACR_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.acrName.value --output tsv)
 AGC_SUBNET_ID=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.agcSubnetId.value --output tsv)
 AGC_IDENTITY_PRINCIPAL_ID=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.agcIdentityPrincipalId.value --output tsv)
+WAF_POLICY_ID=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.wafPolicyId.value --output tsv)
 NODE_RESOURCE_GROUP_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.nodeResourceGroupName.value --output tsv)
 AZURE_MONITOR_WORKSPACE_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.azureMonitorWorkspaceName.value --output tsv)
 GRAFANA_NAME=$(az deployment group show --resource-group "$RESOURCE_GROUP" --name "$DEPLOYMENT_NAME" --query properties.outputs.grafanaName.value --output tsv)
@@ -219,6 +193,7 @@ ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$READER_
 ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$READER_ROLE_ID" "$NODE_RESOURCE_GROUP_ID" "Reader on AKS infrastructure resource group"
 ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$AGC_CONFIG_MANAGER_ROLE_ID" "$NODE_RESOURCE_GROUP_ID" "AppGw for Containers Configuration Manager on AKS infrastructure resource group"
 ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$NETWORK_CONTRIBUTOR_ROLE_ID" "$AGC_SUBNET_ID" "Network Contributor on AGC delegated subnet"
+ensure_role_assignment "$AGC_IDENTITY_PRINCIPAL_ID" "ServicePrincipal" "$NETWORK_CONTRIBUTOR_ROLE_ID" "$WAF_POLICY_ID" "Network Contributor on WAF policy"
 echo -e "${GREEN}✓ AGC managed identity permissions assigned${NC}"
 echo
 

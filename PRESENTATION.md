@@ -16,7 +16,7 @@ Level 400 — deep dive
 We will cover four shifts that change how we build platforms on AKS this year:
 1. Istio: sidecar → ambient mode, with the repo demo using Azure Kubernetes Application Network preview because the classic AKS Istio add-on does not provide this Gateway API ambient path.
 2. Ingress → Gateway API (the new standard, role-oriented, vendor-neutral).
-3. Application Gateway for Containers (AGC) — the Azure-native Gateway API implementation using the ALB Controller and `ApplicationLoadBalancer` CRD, successor to AGIC.
+3. Application Gateway for Containers (AGC) — the Azure-native Gateway API implementation using the ALB Controller and `ApplicationLoadBalancer` CRD, built separately from classic Application Gateway and AGIC.
 4. Managed Argo CD on AKS — a first-class GitOps option next to managed Flux.
 Audience is expected to know AKS basics, kubectl, Helm and CRDs.
 
@@ -403,14 +403,14 @@ Envoy Gateway is the upstream-reference implementation. The current demo script 
 ```
 
 **Traffic flow**
-1. Client hits AGC public/private frontend IP.
+1. Client resolves and connects to the AGC frontend FQDN.
 2. AGC terminates TLS, applies WAF + listener rules.
 3. AGC's data plane sends the request *directly to the backend pod IP* over the cluster's Azure CNI subnet (no NodePort, no kube-proxy).
 4. ALB Controller in the cluster keeps AGC's config in sync from `ApplicationLoadBalancer`, `Gateway`, `HTTPRoute`, and `EndpointSlice` changes via ARM.
 5. Response returns through AGC to the client.
 
 **Speaker notes:**
-The shape to remember: AGC is a *PaaS L7 LB* that lives in your VNet via a delegated subnet, and it talks to pod IPs directly because AKS uses Azure CNI. The current demo creates an `ApplicationLoadBalancer` resource in the `alb-infra` namespace and installs the ALB Controller with Helm in `azure-alb-system`; it intentionally does not enable AKS Web App Routing. The in-cluster ALB Controller is the bridge that translates Gateway API objects and the ALB CRD into ARM calls. There's no in-cluster proxy hop, which is the latency win over Envoy/NGINX-in-cluster designs.
+The shape to remember: AGC is an Azure-managed L7 data plane associated with your VNet through a delegated subnet, and it talks to pod IPs directly because AKS uses Azure CNI. The current demo creates an `ApplicationLoadBalancer` resource in the `alb-infra` namespace and installs the ALB Controller with Helm in `azure-alb-system`; it intentionally does not enable AKS Web App Routing. The in-cluster ALB Controller is the bridge that translates Gateway API objects and the ALB CRD into ARM calls. There's no in-cluster proxy hop, which is the latency win over Envoy/NGINX-in-cluster designs.
 
 ---
 
@@ -435,7 +435,7 @@ cd $DEMO_DIR
 
 # 3. Configure Kubernetes
 #    - Federate AGC identity to azure-alb-system/alb-controller-sa
-#    - Install ALB Controller Helm chart 1.10.28
+#    - Install ALB Controller Helm chart 1.11.4
 #    - Create ApplicationLoadBalancer alb in namespace alb-infra
 #    - Deploy Gateway, HTTPRoute, Service, and Deployment
 ./scripts/configure-kubernetes.sh
@@ -546,14 +546,14 @@ Show this last in the ingress part of the talk. It is what many teams have had i
 - **Enterprise edge features for free**: WAF, mTLS to backend, autoscaled PaaS, Azure Monitor integration
 
 **Speaker notes:**
-This is the slide to land the point of the Envoy Gateway and AGC demos: Gateway API is the *contract*, AGC is the *Azure-native implementation*. The demo keeps the `Gateway`, `HTTPRoute`, service, and deployment in `default` for readability, while the AGC infrastructure object lives in `alb-infra` and the controller lives in `azure-alb-system`. In production you can split the Gateway and routes across platform/app namespaces; the API shape still lets teams write portable routing YAML while the platform team chooses Envoy in dev or AGC in production.
+This is the slide to land the point of the Envoy Gateway and AGC demos: Gateway API is the *contract*, AGC is the *Azure-native implementation*. The demo keeps the `Gateway`, `HTTPRoute`, service, and deployment in `demo`, while the AGC infrastructure object lives in `alb-infra` and the controller lives in `azure-alb-system`. In production you can split the Gateway and routes across platform/app namespaces; the API shape still lets teams write portable routing YAML while the platform team chooses Envoy in dev or AGC in production.
 
 ---
 
 ## Slide 16 — Traffic flow: client → AGC → pod (request lifecycle)
 
 ```
-  1. DNS:  app.contoso.com  → AGC frontend IP
+  1. DNS:  app.contoso.com  → AGC frontend FQDN
   2. Client TCP+TLS to AGC                         (TLS terminated at AGC)
   3. AGC listener matches host/path/headers        (from Gateway+HTTPRoute)
   4. WAF inspects request                          (if WAF policy attached)

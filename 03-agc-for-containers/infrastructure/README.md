@@ -6,7 +6,7 @@ This folder contains Bicep infrastructure-as-code templates for deploying AKS wi
 
 - **Virtual Network**: With dedicated subnets for AKS and Application Gateway for Containers
 - **AKS Cluster**: Prepared for AGC with Workload Identity, Microsoft Entra ID authentication, Azure RBAC, and local accounts disabled
-- **Web Application Firewall Policy**: Baseline DRS 2.1 policy for AGC route protection
+- **Web Application Firewall Policy**: AGC-supported DRS 2.1 policy for route protection
 - **Shared Azure Container Registry reference**: Existing registry in `rg-aksdemo-shared` used for the demo application image
 - **Shared Azure Monitor workspace and Azure Managed Grafana**: Created or reused in `rg-aksdemo-shared` for managed Prometheus metrics from all demos
 - **Log Analytics Workspace**: For Container Insights logs and diagnostics
@@ -37,7 +37,6 @@ This infrastructure showcases Azure-native ingress capabilities:
 │  │   ┌──────────────────────────────────┐   │  │
 │  │   │ AKS Subnet (10.4.0.0/22)         │   │  │
 │  │   │ - AKS Cluster (2 nodes)          │   │  │
-│  │   │ - Workload Identity Enabled      │   │  │
 │  │   │ - Workload Identity Enabled      │   │  │
 │  │   └──────────────────────────────────┘   │  │
 │  │   ┌──────────────────────────────────┐   │  │
@@ -83,7 +82,7 @@ Application Gateway for Containers (AGC) is Azure's modern, cloud-native applica
 - **Gateway API Support**: Uses Kubernetes Gateway API standard
 - **Scalable**: Automatically scales based on demand
 - **Enterprise Features**: Ready for WAF, Azure Monitor, and advanced routing
-- **Simplified Management**: Managed by Azure, no infrastructure to maintain
+- **Managed Data Plane**: Azure operates the ingress data plane outside the cluster
 
 ## Deployment
 
@@ -148,17 +147,14 @@ The AGC subnet is delegated to `Microsoft.ServiceNetworking/trafficControllers`,
 
 ## Cost Estimation
 
-Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
+Costs are region- and usage-dependent. Use the [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/) for Sweden Central and include:
 
-- AKS Cluster: ~$70/month (2 x Standard_B4as_v2 nodes)
-- Application Gateway for Containers: ~$40/month (base capacity)
-- Web Application Firewall policy: may add WAF-related AGC charges depending on usage
-- Shared Azure Container Registry (Standard): ~$20/month total in `rg-aksdemo-shared`
-- Shared Azure Managed Grafana and managed Prometheus ingestion: usage-based in `rg-aksdemo-shared`
-- Log Analytics: ~$5/month (minimal ingestion)
-- Virtual Network: No charge (included)
-
-**Total**: ~$205/month
+| Resource | Billing basis |
+|----------|---------------|
+| AKS | Two `Standard_B4as_v2` nodes; Free tier has no control-plane charge |
+| Application Gateway for Containers | Gateway hours plus capacity units |
+| Web Application Firewall | WAF-enabled gateway and request processing |
+| Shared observability and ACR | Allocate shared registry, Grafana, ingestion, and retention costs across demos |
 
 💡 Remember to delete resources when not in use to avoid charges.
 

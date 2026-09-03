@@ -247,7 +247,7 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 - **Shared Azure Container Registry (Standard SKU)**: ~$20/month total when present
 - **Shared Azure Managed Grafana**: billed while `rg-aksdemo-shared` remains
 - **Load Balancer** (for NGINX and Envoy demos): ~$20/month
-- **Application Gateway for Containers** (for AGC demo): ~$40/month
+- **Application Gateway for Containers** (for AGC demo): usage-based gateway hours and capacity units
 - **Azure Kubernetes Application Network preview** (for Demo 04): preview pricing and regional availability may change
 - **Azure Front Door Premium** (for Demo 05): ~$330/month base, dominant cost driver
 - **Application Gateway v2 (Standard_v2, autoscale)** (for Demo 05): ~$175-250/month
@@ -257,7 +257,7 @@ kubectl logs -n "${APP_NAMESPACE}" -l "${APP_LABEL}" --since=5m | grep "${REQUES
 
 **Estimated monthly cost per demo**: 
 - Demos 01-02 (NGINX/Envoy): ~$115/month
-- Demo 03 (App Gateway): ~$155/month
+- Demo 03 (App Gateway): calculate from gateway hours, capacity units, WAF, and expected traffic
 - Demo 04 (Application Network preview + in-cluster Kiali/Prometheus): verify current preview pricing before workshops
 - Demo 05 (Front Door Premium + App Gateway v2): ~$600-750/month — the most expensive demo in this repo, driven by Front Door Premium's fixed base fee
 

@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+set -o pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -17,6 +19,8 @@ APP_NAMESPACE="demo"
 ALB_CONTROLLER_NAMESPACE="azure-alb-system"
 ALB_RESOURCE_NAMESPACE="alb-infra"
 ALB_RESOURCE_NAME="alb"
+
+command -v az >/dev/null 2>&1 || { echo -e "${RED}Azure CLI is required but not installed.${NC}" >&2; exit 1; }
 
 purge_log_analytics_workspaces() {
   local workspace_names
@@ -62,23 +66,37 @@ if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
 fi
 
 echo -e "${YELLOW}[1/3] Deleting Kubernetes resources...${NC}"
-# Delete Gateway API resources
-kubectl delete webapplicationfirewallpolicy agc-demo-waf-policy -n "$APP_NAMESPACE" --ignore-not-found=true
-kubectl delete httproute agc-demo-route -n "$APP_NAMESPACE" --ignore-not-found=true
-kubectl delete gateway agc-demo-gateway -n "$APP_NAMESPACE" --ignore-not-found=true
-kubectl delete deployment agc-demo-app -n "$APP_NAMESPACE" --ignore-not-found=true
-kubectl delete service agc-demo-service -n "$APP_NAMESPACE" --ignore-not-found=true
-kubectl delete namespace "$APP_NAMESPACE" --ignore-not-found=true
-
-# Delete ApplicationLoadBalancer before removing the controller so finalizers can clean up AGC resources
-kubectl delete applicationloadbalancer -n $ALB_RESOURCE_NAMESPACE $ALB_RESOURCE_NAME --ignore-not-found=true --wait=false
-if command -v helm >/dev/null 2>&1; then
-  helm uninstall alb-controller -n $ALB_CONTROLLER_NAMESPACE 2>/dev/null || echo "ALB Controller Helm release not found"
-else
-  echo "Helm not found, skipping ALB Controller uninstall"
+if [ "$(az group exists --name "$RESOURCE_GROUP")" != "true" ]; then
+  echo -e "${GREEN}Resource group ${RESOURCE_GROUP} no longer exists; nothing to clean up.${NC}"
+  exit 0
 fi
-kubectl delete namespace $ALB_CONTROLLER_NAMESPACE --ignore-not-found=true
-kubectl delete namespace $ALB_RESOURCE_NAMESPACE --ignore-not-found=true
+
+AKS_NAME=$(az aks list --resource-group "$RESOURCE_GROUP" --query "[0].name" --output tsv)
+if [ -n "$AKS_NAME" ]; then
+  command -v kubectl >/dev/null 2>&1 || { echo -e "${RED}kubectl is required but not installed.${NC}" >&2; exit 1; }
+  command -v helm >/dev/null 2>&1 || { echo -e "${RED}Helm is required but not installed.${NC}" >&2; exit 1; }
+  az aks get-credentials --resource-group "$RESOURCE_GROUP" --name "$AKS_NAME" --overwrite-existing --output none
+
+  # Namespace deletion removes the app and its Gateway API resources together.
+  kubectl delete namespace "$APP_NAMESPACE" --ignore-not-found=true
+
+  # Wait for the controller finalizer to remove the Azure data plane before uninstalling it.
+  if kubectl get crd applicationloadbalancer.alb.networking.azure.io >/dev/null 2>&1; then
+    kubectl delete applicationloadbalancer "$ALB_RESOURCE_NAME" \
+      -n "$ALB_RESOURCE_NAMESPACE" \
+      --ignore-not-found=true \
+      --timeout=10m
+  fi
+  if helm status alb-controller -n "$ALB_CONTROLLER_NAMESPACE" >/dev/null 2>&1; then
+    helm uninstall alb-controller -n "$ALB_CONTROLLER_NAMESPACE"
+  else
+    echo "ALB Controller Helm release not found"
+  fi
+  kubectl delete namespace "$ALB_CONTROLLER_NAMESPACE" --ignore-not-found=true
+  kubectl delete namespace "$ALB_RESOURCE_NAMESPACE" --ignore-not-found=true
+else
+  echo "AKS cluster not found; skipping Kubernetes resource cleanup."
+fi
 
 echo -e "${GREEN}✓ Kubernetes resources deleted${NC}"
 echo
