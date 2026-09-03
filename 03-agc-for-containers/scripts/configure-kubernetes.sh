@@ -21,7 +21,7 @@ ALB_RESOURCE_NAMESPACE="alb-infra"
 ALB_RESOURCE_NAME="alb"
 APPLICATIONLOADBALANCER_CRD="applicationloadbalancer.alb.networking.azure.io"
 WAF_POLICY_CRD="webapplicationfirewallpolicy.alb.networking.azure.io"
-ALB_HELM_VERSION="1.10.28"
+ALB_HELM_VERSION="1.11.4"
 FEDERATED_IDENTITY_NAME="alb-controller"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
@@ -99,6 +99,7 @@ if [ "$ALB_CONTROLLER_READY" != "true" ]; then
   exit 1
 fi
 kubectl wait --for=condition=available --timeout=300s deployment/alb-controller -n "$ALB_CONTROLLER_NAMESPACE"
+kubectl wait --for=condition=Accepted --timeout=300s gatewayclass/azure-alb-external
 
 echo "Waiting for ApplicationLoadBalancer CRD..."
 ALB_CRD_READY=false
@@ -162,13 +163,16 @@ kubectl apply -f service.yaml
 kubectl apply -f gateway.yaml
 kubectl apply -f httproute.yaml
 sed -e "s|\${WAF_POLICY_ID}|${WAF_POLICY_ID}|g" waf-policy.yaml | kubectl apply -f -
+kubectl rollout status deployment/agc-demo-app -n "$APP_NAMESPACE" --timeout=300s
+kubectl wait --for=condition=Programmed --timeout=300s webapplicationfirewallpolicy/agc-demo-waf-policy -n "$APP_NAMESPACE"
 echo -e "${GREEN}✓ Application deployed${NC}"
 echo
 
-echo -e "${YELLOW}[5/5] Waiting for external IP (this may take 2-3 minutes)...${NC}"
+echo -e "${YELLOW}[5/5] Waiting for the public frontend FQDN (this may take 2-3 minutes)...${NC}"
+kubectl wait --for=condition=Programmed --timeout=300s gateway/agc-demo-gateway -n "$APP_NAMESPACE"
 for _ in {1..40}; do
-  EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n "$APP_NAMESPACE" -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || echo "")
-  if [ -n "$EXTERNAL_IP" ]; then
+  FRONTEND_FQDN=$(kubectl get gateway agc-demo-gateway -n "$APP_NAMESPACE" -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || echo "")
+  if [ -n "$FRONTEND_FQDN" ]; then
     break
   fi
   echo -n "."
@@ -176,21 +180,22 @@ for _ in {1..40}; do
 done
 echo
 
-if [ -z "$EXTERNAL_IP" ]; then
-  echo -e "${RED}⚠ Warning: External IP not yet assigned. Check status with:${NC}"
+if [ -z "$FRONTEND_FQDN" ]; then
+  echo -e "${RED}The Gateway is programmed but has no public frontend address.${NC}" >&2
   echo -e "  kubectl get gateway agc-demo-gateway -n $APP_NAMESPACE"
   echo -e "  kubectl describe gateway agc-demo-gateway -n $APP_NAMESPACE"
+  exit 1
 else
-  echo -e "${GREEN}✓ External IP assigned${NC}"
+  echo -e "${GREEN}✓ Public frontend assigned: ${FRONTEND_FQDN}${NC}"
   echo
   echo -e "${GREEN}================================================================${NC}"
   echo -e "${GREEN}  Deployment Complete!${NC}"
   echo -e "${GREEN}================================================================${NC}"
   echo
-  echo -e "Application URL: ${GREEN}http://${EXTERNAL_IP}${NC}"
+  echo -e "Application URL: ${GREEN}http://${FRONTEND_FQDN}${NC}"
   echo
-  echo "Health Check: http://${EXTERNAL_IP}/health"
-  echo "API Info: http://${EXTERNAL_IP}/api/info"
+  echo "Health Check: http://${FRONTEND_FQDN}/health"
+  echo "API Info: http://${FRONTEND_FQDN}/api/info"
   echo
   echo -e "${YELLOW}Note: It may take 30-60 seconds for the application to become fully available.${NC}"
   echo

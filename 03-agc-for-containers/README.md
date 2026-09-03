@@ -9,8 +9,9 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 **Why Application Gateway for Containers?**
 - ✅ **Azure-Native**: Deep integration with Azure networking, security, and monitoring
 - ✅ **Enterprise Features**: Ready for WAF, Azure Monitor, and advanced traffic management
-- ✅ **Simplified Management**: Fully managed by Azure, no infrastructure to maintain
+- ✅ **Managed Data Plane**: Azure operates the ingress data plane outside the cluster
 - ✅ **Gateway API Compatible**: Uses Kubernetes Gateway API standard
+- ✅ **Current Conformance**: ALB Controller implements Gateway API v1.5
 - ✅ **Scalable**: Automatically scales based on demand
 - ✅ **Cost-Effective**: Pay only for what you use with consumption-based pricing
 
@@ -34,14 +35,14 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 │       │ HTTP Request                                                       │
 │       ▼                                                                    │
 │  ┌────────────────────────────────────────────────────────────────────┐   │
-│  │  Application Gateway for Containers (Public IP: x.x.x.x)           │   │
+│  │  Application Gateway for Containers (public frontend FQDN)         │   │
 │  │  - Managed by Azure (PaaS service)                                 │   │
 │  │  - Subnet: 10.4.4.0/24 (delegated)                                 │   │
-│  │  - Reads Gateway + HTTPRoute from AKS                              │   │
+│  │  - Programmed from Gateway + HTTPRoute by ALB Controller           │   │
 │  │  - Handles SSL termination, WAF, routing                           │   │
 │  └────────────────────────┬───────────────────────────────────────────┘   │
 │                           │                                                │
-│                           │ Routes to AKS via Private Endpoint             │
+│                           │ Routes to AKS through delegated subnet         │
 │                           ▼                                                │
 │  ┌──────────────────────────────────────────────────────────────────────┐ │
 │  │  Virtual Network: 10.4.0.0/16                                        │ │
@@ -117,15 +118,15 @@ This demo deploys a simple .NET 10 web application to Azure Kubernetes Service (
 └────────────────────────────────────────────────────────────────────────────┘
 
 Traffic Path Summary:
-  1. User → Application Gateway for Containers (Public IP)
-  2. AGC → Reads Gateway + HTTPRoute from AKS via ALB Controller
+  1. User → Application Gateway for Containers (public frontend FQDN)
+  2. ALB Controller → Reads Gateway + HTTPRoute and configures AGC
   3. AGC → Routes to AKS cluster via private VNet connectivity
   4. HTTPRoute → Defines routing to agc-demo-service
   5. Service → Load balances to Pod (Port 8080)
   6. Pod → .NET Application responds
 
 Key Azure-Specific Features:
-  • AGC is a managed Azure PaaS service (no pods to manage)
+  • Azure manages the ingress data plane outside the cluster
   • ALB Controller syncs K8s resources to AGC configuration
   • Traffic stays within Azure VNet for security
   • Supports WAF, Azure Monitor, advanced routing
@@ -146,7 +147,7 @@ Key Azure-Specific Features:
 │  │   │  Application Gateway Subnet (10.4.4.0/24)             │ ││
 │  │   │  - Delegated to ServiceNetworking/trafficControllers  │ ││
 │  │   │  - Application Gateway for Containers (AGC)           │ ││
-│  │   │  - Frontend with Public IP                            │ ││
+│  │   │  - Frontend with public FQDN                          │ ││
 │  │   └───────────────────────────────────────────────────────┘ ││
 │  │                          │                                    ││
 │  │                          ▼                                    ││
@@ -173,7 +174,7 @@ Key Azure-Specific Features:
 └──────────────────────────┼────────────────────────────────────────┘
                            │
                     Internet Traffic
-                  (via AGC Public IP)
+                  (via AGC public frontend)
 ```
 
 ## Key Concepts
@@ -262,7 +263,7 @@ spec:
 ```
 - Links the Azure WAF policy to the demo `HTTPRoute`
 - Protects all paths routed by `agc-demo-route`
-- Uses Azure WAF in prevention mode with the AGC-supported Default Rule Set (DRS) 2.1
+- Uses Azure WAF in prevention mode with Default Rule Set (DRS) 2.1, the version currently supported by AGC
 
 ## Prerequisites
 
@@ -348,6 +349,7 @@ The automated `scripts/deploy-infra.sh` also assigns the AGC managed identity th
 - Reader on the AKS-managed infrastructure resource group
 - AppGw for Containers Configuration Manager on the AKS-managed infrastructure resource group
 - Network Contributor on the delegated AGC subnet
+- Network Contributor on the Azure WAF policy, scoped to that policy so the controller can perform the required policy join action
 
 If deploying manually, mirror those role assignments before installing the ALB Controller.
 
@@ -417,7 +419,7 @@ az identity federated-credential create \
 helm upgrade --install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-controller \
   --namespace azure-alb-system \
   --create-namespace \
-  --version 1.10.28 \
+  --version 1.11.4 \
   --set albController.namespace=azure-alb-system \
   --set albController.podIdentity.clientID=$AGC_IDENTITY_CLIENT_ID \
   --wait \
@@ -476,15 +478,16 @@ WAF_POLICY_ID=$(az deployment group show \
 sed -e "s|\${WAF_POLICY_ID}|${WAF_POLICY_ID}|g" waf-policy.yaml | kubectl apply -f -
 ```
 
-#### Step 8: Get External IP
+#### Step 8: Get the Public Frontend FQDN
 
 ```bash
-# Wait for Gateway to get IP (may take 2-3 minutes)
+# Wait for the Gateway to become programmed and receive its public FQDN
+kubectl wait --for=condition=Programmed --timeout=300s gateway/agc-demo-gateway -n demo
 kubectl get gateway agc-demo-gateway -n demo --watch
 
-# Once IP is assigned
-EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
-echo "Application URL: http://$EXTERNAL_IP"
+# Once the frontend address is assigned
+FRONTEND_FQDN=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
+echo "Application URL: http://$FRONTEND_FQDN"
 ```
 
 ## Testing
@@ -492,17 +495,17 @@ echo "Application URL: http://$EXTERNAL_IP"
 ### Access the Application
 
 ```bash
-# Get the external IP
-EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
+# Get the public frontend FQDN
+FRONTEND_FQDN=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 
 # Main page
-curl http://$EXTERNAL_IP
+curl http://$FRONTEND_FQDN
 
 # Health check
-curl http://$EXTERNAL_IP/health
+curl http://$FRONTEND_FQDN/health
 
 # API info
-curl http://$EXTERNAL_IP/api/info
+curl http://$FRONTEND_FQDN/api/info
 ```
 
 ### Verify Resources
@@ -546,15 +549,15 @@ kubectl logs -n azure-alb-system -l app=alb-controller --tail=50 -f
 
 ### Validate WAF Blocking
 
-The demo creates an Azure Application Gateway WAF policy with `Microsoft_DefaultRuleSet` 2.1 in prevention mode and attaches it to `agc-demo-route` through the ALB Controller `WebApplicationFirewallPolicy` custom resource. Normal requests to `/`, `/health`, and `/api/info` should continue to return the sample app responses.
+The demo creates an Azure Application Gateway WAF policy with `Microsoft_DefaultRuleSet` 2.1 in prevention mode and attaches it to `agc-demo-route` through the ALB Controller `WebApplicationFirewallPolicy` custom resource. AGC currently supports DRS 2.1, even though newer rulesets are available for classic Application Gateway. Normal requests to `/`, `/health`, and `/api/info` should continue to return the sample app responses.
 
 Send a request that matches the managed ruleset to confirm WAF blocks it:
 
 ```bash
-EXTERNAL_IP=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
+FRONTEND_FQDN=$(kubectl get gateway agc-demo-gateway -n demo -o jsonpath='{.status.addresses[0].value}')
 
 # Expected: HTTP 403 from WAF
-curl -i "http://$EXTERNAL_IP/?text=/etc/passwd"
+curl -i "http://$FRONTEND_FQDN/?text=/etc/passwd"
 ```
 
 If the request is not blocked immediately, wait a minute for AGC programming to finish and inspect status:
@@ -686,18 +689,18 @@ az network application-gateway waf-policy show \
 | Feature | NGINX Ingress | Gateway API (Envoy) | AGC |
 |---------|--------------|---------------------|---------------------------|
 | **Azure Integration** | External | External | Native (Deep) |
-| **Management** | Self-managed | Self-managed | Fully managed by Azure |
+| **Management** | Self-managed | Self-managed | Azure-managed data plane plus in-cluster ALB Controller |
 | **WAF Support** | ModSecurity | External | Azure WAF (ready) |
 | **Cost Model** | Infrastructure only | Infrastructure only | Consumption-based |
 | **Scalability** | Manual | Manual | Automatic |
-| **Key Vault Integration** | Manual | Manual | Native |
+| **TLS certificate source** | Kubernetes Secret / CSI | Kubernetes Secret / CSI | Kubernetes Secret / CSI |
 | **Azure Monitor** | Via container logs | Via container logs | Native integration |
 | **Best For** | Legacy migrations | Cross-cloud portability | Azure-first deployments |
 
 ## Benefits of Application Gateway for Containers
 
 ✅ **Azure-Native**: Seamless integration with Azure services  
-✅ **Fully Managed**: No infrastructure to maintain  
+✅ **Managed Data Plane**: Azure operates the ingress data plane; you operate the in-cluster ALB Controller
 ✅ **Enterprise Features**: WAF, advanced routing, centralized monitoring  
 ✅ **Auto-Scaling**: Automatically scales with traffic  
 ✅ **Gateway API Compatible**: Uses Kubernetes standard  
@@ -735,26 +738,23 @@ az group delete \
 
 ## Cost Breakdown
 
-Approximate monthly costs for the Sweden Central demos. Actual Azure pricing is region-dependent and may vary with usage:
+Costs are region- and usage-dependent. Use the [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/) with Sweden Central and your expected capacity units, traffic, WAF processing, monitoring ingestion, and shared-resource allocation.
 
-| Resource | Cost |
-|----------|------|
-| AKS Cluster (2 nodes) | ~$140 |
-| Application Gateway for Containers | ~$40 (base) + consumption |
-| Web Application Firewall policy | May add WAF-related AGC charges depending on usage |
-| Shared Azure Container Registry | ~$20 total |
-| Virtual Network | No charge |
-| Public IP Address | ~$4 |
-| Log Analytics | ~$5 |
-| Shared Azure Managed Grafana / managed Prometheus ingestion | Usage-based |
-| **Total** | **~$209/month** |
+| Resource | Billing basis |
+|----------|---------------|
+| AKS | Two `Standard_B4as_v2` nodes; Free tier has no control-plane charge |
+| Application Gateway for Containers | Gateway hours plus capacity units |
+| Web Application Firewall | WAF-enabled gateway and request processing |
+| Shared Azure Container Registry | Shared Standard registry |
+| Log Analytics / managed Prometheus / Grafana | Ingestion, retention, and Grafana plan |
 
-💡 AGC uses consumption-based pricing for traffic, so costs vary with usage.
+AGC capacity units are driven by connection, throughput, and compute usage, so a fixed monthly total would be misleading.
 
 ## Resources
 
 ### Official Documentation
 - [Application Gateway for Containers](https://learn.microsoft.com/azure/application-gateway/for-containers/)
+- [Application Gateway for Containers pricing](https://azure.microsoft.com/pricing/details/application-gateway/)
 - [Gateway API on AKS](https://learn.microsoft.com/azure/aks/app-routing-gateway-api)
 
 ### Guides and Tutorials

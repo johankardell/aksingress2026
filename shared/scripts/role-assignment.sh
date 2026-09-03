@@ -14,7 +14,7 @@ ensure_role_assignment() {
   fi
 
   local existing_count
-  existing_count=$(az role assignment list \
+  existing_count=$(MSYS_NO_PATHCONV=1 az role assignment list \
     --assignee "$principal_id" \
     --role "$role_id" \
     --scope "$scope" \
@@ -28,7 +28,7 @@ ensure_role_assignment() {
 
   echo "Creating role assignment: $description"
   for attempt in {1..6}; do
-    if az role assignment create \
+    if MSYS_NO_PATHCONV=1 az role assignment create \
       --assignee-object-id "$principal_id" \
       --assignee-principal-type "$principal_type" \
       --role "$role_id" \
